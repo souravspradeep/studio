@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -50,7 +51,11 @@ export default function LoginPage() {
         });
         router.push('/');
       } else {
-        throw new Error(result.message);
+        if (result.code === 'auth/user-not-found') {
+          router.push('/signup');
+        } else {
+          throw new Error(result.message);
+        }
       }
     } catch (error: any) {
       toast({
