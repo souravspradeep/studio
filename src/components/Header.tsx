@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -94,9 +95,6 @@ export default function Header() {
               <Button variant="ghost" asChild>
                 <Link href="/login"><LogIn className="mr-2"/>Login</Link>
               </Button>
-              <Button asChild>
-                <Link href="/signup"><UserPlus className="mr-2" />Sign Up</Link>
-              </Button>
             </>
           )}
         </div>
@@ -135,7 +133,6 @@ export default function Header() {
                         ) : (
                             <>
                                 <NavLink href="/login" onClick={() => setIsOpen(false)}>Login</NavLink>
-                                <NavLink href="/signup" onClick={() => setIsOpen(false)}>Sign Up</NavLink>
                             </>
                         )}
                     </div>
