@@ -13,6 +13,7 @@ export type Item = {
   userName: string;
   userContact: string;
   submittedToOffice?: boolean;
+  ownerId?: string;
 };
 
 export type UserCredentials = {

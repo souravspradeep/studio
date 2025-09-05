@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Item } from '@/lib/types';
@@ -30,9 +31,11 @@ import {
 import { markItemAsReturned } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
+import { useAuth } from './AuthProvider';
 
 export function ItemCard({ item }: { item: Item }) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -63,6 +66,8 @@ export function ItemCard({ item }: { item: Item }) {
       setIsSubmitting(false);
     }
   };
+  
+  const isOwner = user && user.uid === item.ownerId;
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -175,7 +180,7 @@ export function ItemCard({ item }: { item: Item }) {
           </div>
         </div>
         <DialogFooter>
-          {item.type === 'lost' && item.status === 'open' && (
+          {item.type === 'lost' && item.status === 'open' && isOwner && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="secondary">

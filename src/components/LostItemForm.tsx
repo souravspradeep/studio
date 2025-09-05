@@ -25,6 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Upload, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { addLostItem } from '@/app/actions';
+import { useAuth } from './AuthProvider';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Item name must be at least 2 characters.' }),
@@ -38,6 +39,7 @@ const formSchema = z.object({
 
 export function LostItemForm() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -69,9 +71,22 @@ export function LostItemForm() {
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!user) {
+      toast({
+        title: 'Authentication Required',
+        description: 'You must be logged in to report a lost item.',
+        variant: 'destructive',
+      });
+      router.push('/login');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const result = await addLostItem(values);
+      const result = await addLostItem({
+        ...values,
+        ownerId: user.uid,
+      });
 
       if (result.success) {
         toast({
