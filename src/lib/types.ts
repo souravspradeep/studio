@@ -14,3 +14,8 @@ export type Item = {
   userContact: string;
   submittedToOffice?: boolean;
 };
+
+export type UserCredentials = {
+  email: string;
+  password: string
+}

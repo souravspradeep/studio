@@ -1,11 +1,13 @@
 'use server';
 
-import { matchItems, MatchItemsInput } from '@/ai/flows/match-items';
-import type { Item } from '@/lib/types';
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+} from 'firebase/auth';
+import type { Item, UserCredentials } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import { collection, addDoc, getDocs, query, updateDoc, doc } from 'firebase/firestore';
-
 
 async function getItems(collectionName: string): Promise<Item[]> {
   const q = query(collection(db, collectionName));
@@ -28,35 +30,6 @@ export async function getLostItems(): Promise<Item[]> {
 
 export async function getFoundItems(): Promise<Item[]> {
     return getItems('found-items');
-}
-
-export async function runMatchItems(lostItemId: string, foundItemId: string) {
-  const lostItems = await getLostItems();
-  const foundItems = await getFoundItems();
-  const lostItem = lostItems.find((item) => item.id === lostItemId);
-  const foundItem = foundItems.find((item) => item.id === foundItemId);
-
-  if (!lostItem || !foundItem) {
-    throw new Error('Item not found');
-  }
-
-  const input: MatchItemsInput = {
-    lostItemDescription: lostItem.description,
-    lostItemPhotoDataUri: lostItem.imageDataUri,
-    foundItemDescription: foundItem.description,
-    foundItemPhotoDataUri: foundItem.imageDataUri,
-  };
-
-  try {
-    const result = await matchItems(input);
-    return result;
-  } catch (error) {
-    console.error('Error running matchItems flow:', error);
-    return {
-      matchProbability: 0,
-      reasoning: 'An error occurred while trying to match the items. Please try again.',
-    };
-  }
 }
 
 export async function addLostItem(itemData: Omit<Item, 'id' | 'type' | 'status' | 'date' | 'imageUrl'>) {
@@ -107,4 +80,30 @@ export async function markItemAsReturned(itemId: string) {
         console.error("Error updating document: ", error);
         return { success: false, message: 'Failed to update item status.' };
     }
+}
+
+export async function signUpWithEmail(credentials: UserCredentials) {
+  try {
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      credentials.email,
+      credentials.password
+    );
+    return { success: true, userId: userCredential.user.uid };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
+export async function signInWithEmail(credentials: UserCredentials) {
+  try {
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      credentials.email,
+      credentials.password
+    );
+    return { success: true, userId: userCredential.user.uid };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
 }

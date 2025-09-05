@@ -1,12 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { Search, Menu, FileQuestion, FilePlus } from 'lucide-react';
+import { Search, Menu, FileQuestion, FilePlus, LogIn, LogOut, UserPlus } from 'lucide-react';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import React from 'react';
+import { useAuth } from './AuthProvider';
+import { auth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -35,6 +39,27 @@ function NavLink({ href, children, onClick }: { href: string; children: React.Re
 
 export default function Header() {
   const [isOpen, setIsOpen] = React.useState(false);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      toast({
+        title: 'Logged Out',
+        description: 'You have been successfully logged out.',
+      });
+      router.push('/');
+    } catch (error) {
+      toast({
+        title: 'Logout Failed',
+        description: 'Something went wrong. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
 
   return (
     <header className="sticky top-0 z-50 w-full bg-primary text-primary-foreground">
@@ -57,7 +82,23 @@ export default function Header() {
            <NavLink href="/contact-authority">Contact</NavLink>
         </nav>
 
-        <div className="hidden md:flex items-center space-x-4">
+        <div className="hidden md:flex items-center space-x-2">
+            {user ? (
+            <>
+              <Button variant="ghost" onClick={handleLogout}>
+                <LogOut className="mr-2" /> Logout
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" asChild>
+                <Link href="/login"><LogIn className="mr-2"/>Login</Link>
+              </Button>
+              <Button asChild>
+                <Link href="/signup"><UserPlus className="mr-2" />Sign Up</Link>
+              </Button>
+            </>
+          )}
         </div>
 
         <div className="md:hidden">
@@ -88,6 +129,15 @@ export default function Header() {
                         ))}
                          <NavLink href="/lost-item" onClick={() => setIsOpen(false)}>I lost something</NavLink>
                          <NavLink href="/found-item" onClick={() => setIsOpen(false)}>I found something</NavLink>
+                        <hr className="border-blue-300 my-2" />
+                        {user ? (
+                           <button onClick={() => { handleLogout(); setIsOpen(false);}} className="text-left text-base font-medium text-blue-200 hover:text-white">Logout</button>
+                        ) : (
+                            <>
+                                <NavLink href="/login" onClick={() => setIsOpen(false)}>Login</NavLink>
+                                <NavLink href="/signup" onClick={() => setIsOpen(false)}>Sign Up</NavLink>
+                            </>
+                        )}
                     </div>
                 </div>
               </SheetContent>
