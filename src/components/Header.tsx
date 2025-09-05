@@ -87,9 +87,9 @@ export default function Header() {
         </Link>
         
         <nav className="hidden md:flex items-center space-x-6">
-           <NavLink href="/items">Browse Items</NavLink>
-           <NavLink href="/match-items">AI Matcher</NavLink>
-           <NavLink href="/contact-authority">Contact</NavLink>
+           {navLinks.map((link) => (
+             <NavLink key={link.href} href={link.href}>{link.label}</NavLink>
+           ))}
         </nav>
 
         <div className="hidden md:flex items-center space-x-2">
@@ -119,11 +119,9 @@ export default function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <>
-              <Button variant="ghost" asChild>
-                <Link href="/login"><LogIn className="mr-2"/>Login</Link>
-              </Button>
-            </>
+            <Button variant="ghost" asChild>
+              <Link href="/login"><LogIn className="mr-2"/>Login</Link>
+            </Button>
           )}
         </div>
 
@@ -159,9 +157,7 @@ export default function Header() {
                         {user ? (
                            <button onClick={() => { handleLogout(); setIsOpen(false);}} className="text-left text-base font-medium text-blue-200 hover:text-white">Logout</button>
                         ) : (
-                            <>
-                                <NavLink href="/login" onClick={() => setIsOpen(false)}>Login</NavLink>
-                            </>
+                           <NavLink href="/login" onClick={() => setIsOpen(false)}>Login</NavLink>
                         )}
                     </div>
                 </div>
