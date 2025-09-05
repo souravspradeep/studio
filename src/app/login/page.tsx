@@ -51,15 +51,18 @@ export default function LoginPage() {
         });
         router.push('/');
       } else {
-        // This is the corrected logic
         if (result.code === 'auth/user-not-found') {
-          toast({
-            title: 'Account Not Found',
-            description: "It looks like you don't have an account. We'll redirect you to the sign-up page.",
-          });
-          router.push('/signup');
+            toast({
+                title: 'Account Not Found',
+                description: "This email isn't registered. Redirecting you to sign up.",
+            });
+            router.push('/signup');
         } else {
-          throw new Error(result.message);
+            toast({
+                title: 'Login Failed',
+                description: result.message || 'Something went wrong. Please try again.',
+                variant: 'destructive',
+            });
         }
       }
     } catch (error: any) {
