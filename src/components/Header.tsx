@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Search, Menu, FileQuestion, FilePlus, LogIn, LogOut, User } from 'lucide-react';
+import { Search, Menu, LogIn, LogOut, User } from 'lucide-react';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 import { usePathname, useRouter } from 'next/navigation';
@@ -151,8 +151,6 @@ export default function Header() {
                                 {link.label}
                             </NavLink>
                         ))}
-                         <NavLink href="/lost-item" onClick={() => setIsOpen(false)}>I lost something</NavLink>
-                         <NavLink href="/found-item" onClick={() => setIsOpen(false)}>I found something</NavLink>
                         <hr className="border-blue-300 my-2" />
                         {user ? (
                            <button onClick={() => { handleLogout(); setIsOpen(false);}} className="text-left text-base font-medium text-blue-200 hover:text-white">Logout</button>
