@@ -8,7 +8,8 @@ import {
 import type { Item, UserCredentials } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { db, auth } from '@/lib/firebase';
-import { collection, addDoc, getDocs, query, updateDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, updateDoc, doc, getDoc } from 'firebase/firestore';
+import { matchItems, MatchItemsInput } from '@/ai/flows/match-items';
 
 async function getItems(collectionName: string): Promise<Item[]> {
   const q = query(collection(db, collectionName));
@@ -33,7 +34,7 @@ export async function getFoundItems(): Promise<Item[]> {
     return getItems('found-items');
 }
 
-export async function addLostItem(itemData: Omit<Item, 'id' | 'type' | 'status' | 'date' | 'imageUrl'>) {
+export async function addLostItem(itemData: Omit<Item, 'id' | 'type' | 'status' | 'date' | 'imageUrl'> & { ownerId: string }) {
     const newItem: Omit<Item, 'id'> = {
         type: 'lost',
         status: 'open',
@@ -57,7 +58,8 @@ export async function addFoundItem(itemData: Omit<Item, 'id' | 'type' | 'status'
         imageUrl: itemData.imageDataUri || `https://picsum.photos/400/300?random=${crypto.randomUUID()}`,
         ...itemData,
     };
-    const docRef = await addDoc(collection(db, "found-items"), newItem);
+    const docRef = await addDoc(collection(db, "found-items"
+), newItem);
     
     revalidatePath('/');
     revalidatePath('/items');
@@ -82,6 +84,41 @@ export async function markItemAsReturned(itemId: string) {
         return { success: false, message: 'Failed to update item status.' };
     }
 }
+
+export async function runMatchItems(lostItemId: string, foundItemId: string) {
+    try {
+        const lostItemRef = doc(db, 'lost-items', lostItemId);
+        const foundItemRef = doc(db, 'found-items', foundItemId);
+
+        const lostItemSnap = await getDoc(lostItemRef);
+        const foundItemSnap = await getDoc(foundItemRef);
+
+        if (!lostItemSnap.exists() || !foundItemSnap.exists()) {
+            throw new Error('One or both items not found');
+        }
+
+        const lostItem = lostItemSnap.data() as Item;
+        const foundItem = foundItemSnap.data() as Item;
+
+        const input: MatchItemsInput = {
+            lostItemDescription: lostItem.description,
+            lostItemPhotoDataUri: lostItem.imageDataUri,
+            foundItemDescription: foundItem.description,
+            foundItemPhotoDataUri: foundItem.imageDataUri,
+        };
+
+        const result = await matchItems(input);
+        return result;
+
+    } catch (error: any) {
+        console.error('Error in runMatchItems:', error);
+        return {
+            matchProbability: 0,
+            reasoning: `An error occurred: ${error.message}`
+        };
+    }
+}
+
 
 export async function signUpWithEmail(credentials: UserCredentials) {
   try {
