@@ -93,36 +93,12 @@ export default function Header() {
         </nav>
 
         <div className="hidden md:flex items-center space-x-2">
-            {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                  <Avatar className="h-9 w-9">
-                    <AvatarFallback>{user.email?.[0].toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">My Account</p>
-                    <p className="text-xs leading-none text-muted-foreground">
-                      {user.email}
-                    </p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
             <Button variant="ghost" asChild>
               <Link href="/login"><LogIn className="mr-2"/>Login</Link>
             </Button>
-          )}
+            <Button variant="ghost" onClick={handleLogout}>
+              <LogOut className="mr-2"/>Logout
+            </Button>
         </div>
 
         <div className="md:hidden">
@@ -152,11 +128,8 @@ export default function Header() {
                             </NavLink>
                         ))}
                         <hr className="border-blue-300 my-2" />
-                        {user ? (
-                           <button onClick={() => { handleLogout(); setIsOpen(false);}} className="text-left text-base font-medium text-blue-200 hover:text-white">Logout</button>
-                        ) : (
-                           <NavLink href="/login" onClick={() => setIsOpen(false)}>Login</NavLink>
-                        )}
+                        <NavLink href="/login" onClick={() => setIsOpen(false)}>Login</NavLink>
+                        <button onClick={() => { handleLogout(); setIsOpen(false);}} className="text-left text-base font-medium text-blue-200 hover:text-white">Logout</button>
                     </div>
                 </div>
               </SheetContent>
