@@ -7,7 +7,7 @@ import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useAuth } from './AuthProvider';
 import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
