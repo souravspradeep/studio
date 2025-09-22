@@ -139,7 +139,7 @@ export async function signUpWithEmail(credentials: UserCredentials) {
 
     return { success: true, userId: user.uid };
   } catch (error: any) {
-    return { success: false, message: error.message };
+    return { success: false, message: error.message, code: error.code };
   }
 }
 

@@ -64,7 +64,18 @@ export default function SignUpPage() {
         });
         router.push('/');
       } else {
-        throw new Error(result.message);
+        if (result.code === 'auth/email-already-in-use') {
+          form.setError('email', {
+            type: 'manual',
+            message: 'Account Already Exists',
+          });
+        } else {
+            toast({
+                title: 'Sign Up Failed',
+                description: result.message || 'Something went wrong. Please try again.',
+                variant: 'destructive',
+            });
+        }
       }
     } catch (error: any) {
       toast({
