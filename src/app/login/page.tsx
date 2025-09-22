@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -6,6 +7,8 @@ import { z } from 'zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React from 'react';
+import Image from 'next/image';
+import { User, Lock } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -53,7 +56,7 @@ export default function LoginPage() {
         if (result.code === 'auth/user-not-found') {
             toast({
                 title: 'Account Not Found',
-                description: "This email isn't registered. Redirecting you to sign up.",
+                description: "This email isn't registered. Please sign up.",
             });
             router.push('/signup');
         } else {
@@ -76,11 +79,17 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-80px)] p-4">
-      <Card className="w-full max-w-md shadow-2xl rounded-2xl">
+    <div className="relative flex items-center justify-center min-h-[calc(100vh-80px)] p-4">
+      <Image 
+        src="https://picsum.photos/seed/3/1200/800"
+        alt="Background"
+        fill
+        className="object-cover -z-10"
+      />
+      <Card className="w-full max-w-md shadow-2xl rounded-2xl bg-white/90 backdrop-blur-sm">
         <CardHeader className="text-center">
           <CardTitle className="text-4xl font-bold">FindIt</CardTitle>
-          <CardDescription>Connecting Finders & Owners</CardDescription>
+          <CardDescription className="text-lg">Log in to your account</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -90,10 +99,12 @@ export default function LoginPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="Enter your email" {...field} />
-                    </FormControl>
+                    <div className="relative">
+                       <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                       <FormControl>
+                         <Input type="email" placeholder="Email address" {...field} className="pl-10" />
+                       </FormControl>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -103,15 +114,22 @@ export default function LoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="Enter your password" {...field} />
-                    </FormControl>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <FormControl>
+                        <Input type="password" placeholder="Password" {...field} className="pl-10" />
+                      </FormControl>
+                    </div>
+                    <div className="text-right text-sm mt-2">
+                        <Link href="#" className="underline text-muted-foreground hover:text-primary">
+                          Forgot password?
+                        </Link>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full btn-gradient" size="lg" disabled={isSubmitting}>
+              <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
                 {isSubmitting ? 'Logging in...' : 'Log In'}
               </Button>
             </form>
@@ -119,7 +137,7 @@ export default function LoginPage() {
           <div className="mt-6 text-center text-sm">
             Don&apos;t have an account?{' '}
             <Link href="/signup" className="underline font-semibold">
-              Sign Up
+              Sign up now
             </Link>
           </div>
         </CardContent>
