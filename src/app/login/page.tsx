@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -77,11 +76,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-sm py-12 px-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Welcome Back</CardTitle>
-          <CardDescription>Enter your credentials to access your account.</CardDescription>
+    <div className="flex items-center justify-center min-h-[calc(100vh-80px)] p-4">
+      <Card className="w-full max-w-md shadow-2xl rounded-2xl">
+        <CardHeader className="text-center">
+          <CardTitle className="text-4xl font-bold">FindIt</CardTitle>
+          <CardDescription>Connecting Finders & Owners</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -93,7 +92,7 @@ export default function LoginPage() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="you@example.com" {...field} />
+                      <Input type="email" placeholder="Enter your email" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -106,21 +105,21 @@ export default function LoginPage() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
+                      <Input type="password" placeholder="Enter your password" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? 'Logging in...' : 'Login'}
+              <Button type="submit" className="w-full btn-gradient" size="lg" disabled={isSubmitting}>
+                {isSubmitting ? 'Logging in...' : 'Log In'}
               </Button>
             </form>
           </Form>
-          <div className="mt-4 text-center text-sm">
+          <div className="mt-6 text-center text-sm">
             Don&apos;t have an account?{' '}
-            <Link href="/signup" className="underline">
-              Sign up
+            <Link href="/signup" className="underline font-semibold">
+              Sign Up
             </Link>
           </div>
         </CardContent>
