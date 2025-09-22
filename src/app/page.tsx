@@ -1,89 +1,157 @@
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowRight, CheckCircle, FileText, FileQuestion, FilePlus } from 'lucide-react';
+'use client';
+
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import React from 'react';
 import Image from 'next/image';
-import { getLostItems } from '@/app/actions';
-import { ItemCard } from '@/components/ItemCard';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
+import { signInWithEmail } from '@/app/actions';
 
-export default async function Home() {
-  const allLostItems = await getLostItems();
-  const activeLostItems = allLostItems.filter(item => item.status === 'open');
-  const itemsReturned = allLostItems.filter(item => item.status === 'returned').length;
-  const activePosts = activeLostItems.length;
-  
-  const recentLostItems = [...activeLostItems]
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 4);
+const formSchema = z.object({
+  email: z.string().email({ message: 'Please enter a valid email address.' }),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+});
+
+export default function LoginPage() {
+  const { toast } = useToast();
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [showPassword, setShowPassword] = React.useState(false);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
+      const result = await signInWithEmail(values);
+      if (result.success) {
+        toast({
+          title: 'Login Successful!',
+          description: "You've been successfully logged in.",
+        });
+        router.push('/home');
+      } else {
+        if (result.code === 'auth/user-not-found') {
+            toast({
+                title: 'Account Not Found',
+                description: "This email isn't registered. Please sign up.",
+            });
+            router.push('/signup');
+        } else {
+            toast({
+                title: 'Login Failed',
+                description: result.message || 'Something went wrong. Please try again.',
+                variant: 'destructive',
+            });
+        }
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Login Failed',
+        description: error.message || 'Something went wrong. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
-    <div className="flex flex-col items-center justify-center p-4 md:p-8">
-      
-      <div className="relative w-full max-w-5xl bg-gradient-to-r from-blue-500 to-yellow-400 rounded-2xl p-8 md:p-12 text-white overflow-hidden mb-12">
-        <div className="absolute inset-0 bg-black/20 z-0"></div>
-        <div className="relative z-10">
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">
-            Lost Something? Found Something?
-          </h1>
-          <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">We'll Help You!</h2>
-          <p className="text-lg md:text-xl text-blue-100 max-w-lg mb-8">
-            Connect, share, and help each other find what matters on campus.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Button asChild size="lg" className="bg-white/90 text-primary hover:bg-white">
-              <Link href="/lost-item">
-                <FileQuestion className="mr-2" /> I lost something
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="secondary">
-              <Link href="/found-item">
-                <FilePlus className="mr-2" /> I found something
-              </Link>
-            </Button>
+    <div className="relative flex items-center justify-center min-h-[calc(100vh-80px)] p-4">
+      <Image
+        src="https://picsum.photos/seed/gadgets-backpack/1200/800"
+        alt="Background"
+        fill
+        className="object-cover -z-10"
+        data-ai-hint="gadgets backpack"
+      />
+      <Card className="w-full max-w-md shadow-2xl rounded-2xl bg-white/90 backdrop-blur-sm">
+        <CardHeader className="text-center">
+          <CardTitle className="text-4xl font-bold">FindIt</CardTitle>
+          <CardDescription className="text-lg">Log in to your account</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="relative">
+                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                       <FormControl>
+                         <Input type="email" placeholder="Email address" {...field} className="pl-10" />
+                       </FormControl>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <FormControl>
+                        <Input type={showPassword ? 'text' : 'password'} placeholder="Password" {...field} className="pl-10 pr-10" />
+                      </FormControl>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                    <div className="text-right text-sm mt-2">
+                        <Link href="#" className="underline text-muted-foreground hover:text-primary">
+                          Forgot password?
+                        </Link>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full btn-gradient" size="lg" disabled={isSubmitting}>
+                {isSubmitting ? 'Logging in...' : 'Log In'}
+              </Button>
+            </form>
+          </Form>
+          <div className="mt-6 text-center text-sm">
+            Don&apos;t have an account?{' '}
+            <Link href="/signup" className="underline font-semibold">
+              Sign up now
+            </Link>
           </div>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-5xl mb-16">
-        <Card className="shadow-lg">
-          <CardContent className="flex items-center justify-between p-6">
-            <div>
-              <p className="text-muted-foreground">Active Posts</p>
-              <p className="text-4xl font-bold">{activePosts}</p>
-            </div>
-            <div className="bg-blue-100 p-4 rounded-full">
-              <FileText className="text-primary" size={28}/>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-lg">
-          <CardContent className="flex items-center justify-between p-6">
-            <div>
-              <p className="text-muted-foreground">Items Returned</p>
-              <p className="text-4xl font-bold">{itemsReturned}</p>
-            </div>
-            <div className="bg-green-100 p-4 rounded-full">
-              <CheckCircle className="text-green-600" size={28}/>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      
-      <div className="w-full max-w-5xl">
-        <h2 className="text-3xl font-bold mb-8 text-center md:text-left">Recently Lost Items</h2>
-        {recentLostItems.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {recentLostItems.map((item) => (
-              <ItemCard key={item.id} item={item} />
-            ))}
-          </div>
-        ) : (
-          <p className="text-center text-muted-foreground py-16">No lost items have been reported yet.</p>
-        )}
-      </div>
-
+        </CardContent>
+      </Card>
     </div>
   );
 }

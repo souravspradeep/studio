@@ -23,7 +23,7 @@ import {
 } from './ui/dropdown-menu';
 
 const navLinks = [
-  { href: '/', label: 'Home' },
+  { href: '/home', label: 'Home' },
   { href: '/items', label: 'Browse Items' },
   { href: '/match-items', label: 'AI Matcher' },
   { href: '/contact-authority', label: 'Contact' },
@@ -74,7 +74,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full bg-primary text-primary-foreground">
       <div className="container flex h-20 items-center justify-between">
-        <Link href="/" className="flex items-center space-x-3">
+        <Link href="/home" className="flex items-center space-x-3">
           <div className="bg-white/20 p-2 rounded-lg">
             <Search className="h-6 w-6 text-white" />
           </div>
@@ -111,7 +111,7 @@ export default function Header() {
               </SheetTrigger>
               <SheetContent side="right" className="bg-primary text-primary-foreground border-l-0">
                 <div className="grid gap-6 p-6">
-                    <Link href="/" className="flex items-center space-x-3" onClick={() => setIsOpen(false)}>
+                    <Link href="/home" className="flex items-center space-x-3" onClick={() => setIsOpen(false)}>
                         <div className="bg-white/20 p-2 rounded-lg">
                            <Search className="h-6 w-6 text-white" />
                         </div>

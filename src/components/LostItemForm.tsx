@@ -94,7 +94,7 @@ export function LostItemForm() {
           description: 'Your lost item report has been created. We hope you find it soon!',
         });
         form.reset();
-        router.push('/items');
+        router.push('/home');
       } else {
         throw new Error('Failed to add item');
       }

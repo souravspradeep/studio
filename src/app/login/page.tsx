@@ -51,7 +51,7 @@ export default function LoginPage() {
           title: 'Login Successful!',
           description: "You've been successfully logged in.",
         });
-        router.push('/');
+        router.push('/home');
       } else {
         if (result.code === 'auth/user-not-found') {
             toast({

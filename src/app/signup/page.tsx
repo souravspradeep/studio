@@ -62,7 +62,7 @@ export default function SignUpPage() {
           title: 'Account Created!',
           description: 'Your account has been successfully created.',
         });
-        router.push('/');
+        router.push('/home');
       } else {
         if (result.code === 'auth/email-already-in-use') {
           form.setError('email', {
