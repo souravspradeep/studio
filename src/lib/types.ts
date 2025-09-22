@@ -1,3 +1,4 @@
+
 export type Item = {
   id: string;
   type: 'lost' | 'found';
@@ -17,6 +18,7 @@ export type Item = {
 };
 
 export type UserCredentials = {
+  fullName?: string;
   email: string;
   password: string
 }

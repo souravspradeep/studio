@@ -8,7 +8,7 @@ import {
 import type { Item, UserCredentials } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { db, auth } from '@/lib/firebase';
-import { collection, addDoc, getDocs, query, updateDoc, doc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, updateDoc, doc, getDoc, setDoc } from 'firebase/firestore';
 import { matchItems, MatchItemsInput } from '@/ai/flows/match-items';
 
 async function getItems(collectionName: string): Promise<Item[]> {
@@ -127,7 +127,17 @@ export async function signUpWithEmail(credentials: UserCredentials) {
       credentials.email,
       credentials.password
     );
-    return { success: true, userId: userCredential.user.uid };
+
+    const user = userCredential.user;
+
+    // Now, store the user's full name and email in Firestore
+    await setDoc(doc(db, "users", user.uid), {
+      uid: user.uid,
+      email: user.email,
+      fullName: credentials.fullName,
+    });
+
+    return { success: true, userId: user.uid };
   } catch (error: any) {
     return { success: false, message: error.message };
   }

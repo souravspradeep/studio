@@ -7,6 +7,8 @@ import { z } from 'zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React from 'react';
+import Image from 'next/image';
+import { User, Lock, Mail } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -24,6 +26,7 @@ import { signUpWithEmail } from '@/app/actions';
 
 const formSchema = z
   .object({
+    fullName: z.string().min(2, { message: 'Please enter your full name.' }),
     email: z.string().email({ message: 'Please enter a valid email address.' }),
     password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
     confirmPassword: z.string(),
@@ -41,6 +44,7 @@ export default function SignUpPage() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      fullName: '',
       email: '',
       password: '',
       confirmPassword: '',
@@ -72,24 +76,48 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-80px)] p-4">
-      <Card className="w-full max-w-md shadow-2xl rounded-2xl">
+    <div className="relative flex items-center justify-center min-h-[calc(100vh-80px)] p-4">
+      <Image
+        src="https://picsum.photos/seed/gadgets-backpack/1200/800"
+        alt="Background"
+        fill
+        className="object-cover -z-10"
+        data-ai-hint="gadgets backpack"
+      />
+      <Card className="w-full max-w-md shadow-2xl rounded-2xl bg-white/90 backdrop-blur-sm">
         <CardHeader className="text-center">
           <CardTitle className="text-4xl font-bold">FindIt</CardTitle>
-          <CardDescription>Create your account</CardDescription>
+          <CardDescription className="text-lg">Create your account</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
                 control={form.control}
+                name="fullName"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="relative">
+                       <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                       <FormControl>
+                         <Input type="text" placeholder="Full Name" {...field} className="pl-10" />
+                       </FormControl>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="you@example.com" {...field} />
-                    </FormControl>
+                    <div className="relative">
+                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                       <FormControl>
+                         <Input type="email" placeholder="Email address (Institute ID preferred)" {...field} className="pl-10" />
+                       </FormControl>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -99,10 +127,12 @@ export default function SignUpPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <FormControl>
+                        <Input type="password" placeholder="Password (min. 6 characters)" {...field} className="pl-10" />
+                      </FormControl>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -112,10 +142,12 @@ export default function SignUpPage() {
                 name="confirmPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Confirm Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <FormControl>
+                        <Input type="password" placeholder="Confirm Password" {...field} className="pl-10" />
+                      </FormControl>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}

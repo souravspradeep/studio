@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 import Image from 'next/image';
-import { User, Lock } from 'lucide-react';
+import { Mail, Lock } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -16,7 +16,6 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -101,7 +100,7 @@ export default function LoginPage() {
                 render={({ field }) => (
                   <FormItem>
                     <div className="relative">
-                       <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                        <FormControl>
                          <Input type="email" placeholder="Email address" {...field} className="pl-10" />
                        </FormControl>
@@ -130,7 +129,7 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+              <Button type="submit" className="w-full btn-gradient" size="lg" disabled={isSubmitting}>
                 {isSubmitting ? 'Logging in...' : 'Log In'}
               </Button>
             </form>
