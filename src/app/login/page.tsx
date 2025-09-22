@@ -80,11 +80,12 @@ export default function LoginPage() {
 
   return (
     <div className="relative flex items-center justify-center min-h-[calc(100vh-80px)] p-4">
-      <Image 
-        src="https://picsum.photos/seed/login-page/1200/800"
+      <Image
+        src="https://picsum.photos/seed/gadgets-backpack/1200/800"
         alt="Background"
         fill
         className="object-cover -z-10"
+        data-ai-hint="gadgets backpack"
       />
       <Card className="w-full max-w-md shadow-2xl rounded-2xl bg-white/90 backdrop-blur-sm">
         <CardHeader className="text-center">
