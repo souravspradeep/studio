@@ -79,7 +79,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative flex items-center justify-center min-h-[calc(100vh-80px)] p-4">
+    <div className="relative flex items-center justify-center min-h-screen p-4">
       <Image
         src="https://picsum.photos/seed/gadgets-backpack/1200/800"
         alt="Background"
