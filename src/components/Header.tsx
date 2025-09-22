@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import React, { useEffect, useState } from 'react';
 import { useAuth } from './AuthProvider';
 import { auth } from '@/lib/firebase';
-import { signOut, onAuthStateChanged } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import {
