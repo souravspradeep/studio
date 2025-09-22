@@ -81,7 +81,7 @@ export default function LoginPage() {
   return (
     <div className="relative flex items-center justify-center min-h-[calc(100vh-80px)] p-4">
       <Image 
-        src="https://picsum.photos/seed/3/1200/800"
+        src="https://picsum.photos/seed/login-page/1200/800"
         alt="Background"
         fill
         className="object-cover -z-10"
