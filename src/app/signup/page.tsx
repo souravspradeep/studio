@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -71,11 +72,11 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-sm py-12 px-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Create an Account</CardTitle>
-          <CardDescription>Join our community to find and report items.</CardDescription>
+    <div className="flex items-center justify-center min-h-[calc(100vh-80px)] p-4">
+      <Card className="w-full max-w-md shadow-2xl rounded-2xl">
+        <CardHeader className="text-center">
+          <CardTitle className="text-4xl font-bold">FindIt</CardTitle>
+          <CardDescription>Create your account</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -119,15 +120,15 @@ export default function SignUpPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
+              <Button type="submit" className="w-full btn-gradient" size="lg" disabled={isSubmitting}>
                 {isSubmitting ? 'Creating account...' : 'Sign Up'}
               </Button>
             </form>
           </Form>
-          <div className="mt-4 text-center text-sm">
+          <div className="mt-6 text-center text-sm">
             Already have an account?{' '}
-            <Link href="/login" className="underline">
-              Login
+            <Link href="/login" className="underline font-semibold">
+              Log In
             </Link>
           </div>
         </CardContent>
