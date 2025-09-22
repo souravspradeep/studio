@@ -93,9 +93,6 @@ export default function Header() {
         </nav>
 
         <div className="hidden md:flex items-center space-x-2">
-            <Button variant="ghost" asChild>
-              <Link href="/login"><LogIn className="mr-2"/>Login</Link>
-            </Button>
             <Button variant="ghost" onClick={handleLogout}>
               <LogOut className="mr-2"/>Logout
             </Button>
@@ -128,7 +125,6 @@ export default function Header() {
                             </NavLink>
                         ))}
                         <hr className="border-blue-300 my-2" />
-                        <NavLink href="/login" onClick={() => setIsOpen(false)}>Login</NavLink>
                         <button onClick={() => { handleLogout(); setIsOpen(false);}} className="text-left text-base font-medium text-blue-200 hover:text-white">Logout</button>
                     </div>
                 </div>
