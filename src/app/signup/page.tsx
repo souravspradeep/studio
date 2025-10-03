@@ -91,11 +91,11 @@ export default function SignUpPage() {
   return (
     <div className="relative flex items-center justify-center min-h-screen p-4">
       <Image
-        src="https://picsum.photos/seed/campus-life/1200/800"
+        src="https://picsum.photos/seed/ai-campus/1200/800"
         alt="Background"
         fill
         className="object-cover -z-10"
-        data-ai-hint="campus building"
+        data-ai-hint="futuristic campus"
       />
       <Card className="w-full max-w-md shadow-2xl rounded-2xl bg-white/90 backdrop-blur-sm">
         <CardHeader className="text-center">
