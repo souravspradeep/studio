@@ -7,7 +7,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { Skeleton } from './ui/skeleton';
 
-// Augment the Firebase User type to include our custom fields
+// Define a new interface for our user object that includes the custom fullName
 export interface AuthUser extends FirebaseUser {
   fullName?: string;
 }
@@ -33,17 +33,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const userDocRef = doc(db, 'users', firebaseUser.uid);
         const userDocSnap = await getDoc(userDocRef);
 
+        let userWithProfile: AuthUser = { ...firebaseUser };
+
         if (userDocSnap.exists()) {
           const userData = userDocSnap.data();
-          const userWithProfile: AuthUser = { 
-            ...firebaseUser, 
-            fullName: userData.fullName 
-          };
-          setUser(userWithProfile);
+          // Ensure the fullName from Firestore is correctly added to our user object
+          userWithProfile.fullName = userData.fullName;
         } else {
-          // Fallback if the user doc doesn't exist for some reason
-          setUser(firebaseUser);
+          // If Firestore doc doesn't exist, use displayName from Auth profile as a fallback
+          userWithProfile.fullName = firebaseUser.displayName || undefined;
         }
+        
+        setUser(userWithProfile);
+
       } else {
         // User is signed out
         setUser(null);
@@ -75,6 +77,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
+// This hook provides access to the auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

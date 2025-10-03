@@ -41,7 +41,7 @@ const formSchema = z.object({
 export function FoundItemForm() {
   const { toast } = useToast();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -72,6 +72,10 @@ export function FoundItemForm() {
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (isAuthLoading) {
+        toast({ title: 'Please wait', description: 'Checking your login status...' });
+        return;
+    }
     if (!user) {
       toast({
         title: 'Authentication Required',
@@ -86,7 +90,7 @@ export function FoundItemForm() {
     try {
       const result = await addFoundItem({
         ...values,
-        userName: user.displayName || user.email || 'Anonymous',
+        userName: user.fullName || user.email || 'Anonymous',
         userContact: user.email || '',
       });
 
