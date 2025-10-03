@@ -86,7 +86,7 @@ export function FoundItemForm() {
     try {
       const result = await addFoundItem({
         ...values,
-        userName: user.displayName || 'Anonymous',
+        userName: user.displayName || user.email || 'Anonymous',
         userContact: user.email || '',
       });
 
