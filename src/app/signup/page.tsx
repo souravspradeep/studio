@@ -7,7 +7,6 @@ import { z } from 'zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React from 'react';
-import Image from 'next/image';
 import { User, Lock, Mail, Eye, EyeOff } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -89,14 +88,7 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="relative flex items-center justify-center min-h-screen p-4">
-      <Image
-        src="https://fastly.picsum.photos/id/20/3670/2462.jpg?hmac=CmQ0ln-k5ZqkdtLvVO23LjVAEabZQx2wOaT4pyeG10I"
-        alt="Background"
-        fill
-        className="object-cover -z-10"
-        data-ai-hint="futuristic campus"
-      />
+    <div className="flex items-center justify-center min-h-screen p-4 background-gradient">
       <Card className="w-full max-w-md shadow-2xl rounded-2xl bg-white/90 backdrop-blur-sm">
         <CardHeader className="text-center">
           <CardTitle className="text-4xl font-bold">FindIt</CardTitle>

@@ -7,7 +7,6 @@ import { z } from 'zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React from 'react';
-import Image from 'next/image';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -79,14 +78,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative flex items-center justify-center min-h-screen p-4">
-      <Image
-        src="https://picsum.photos/seed/lost-found/1200/800"
-        alt="Background"
-        fill
-        className="object-cover -z-10"
-        data-ai-hint="lost found"
-      />
+    <div className="flex items-center justify-center min-h-screen p-4 background-gradient">
       <Card className="w-full max-w-md shadow-2xl rounded-2xl bg-white/90 backdrop-blur-sm">
         <CardHeader className="text-center">
           <CardTitle className="text-4xl font-bold">FindIt</CardTitle>
