@@ -91,7 +91,7 @@ export default function SignUpPage() {
   return (
     <div className="relative flex items-center justify-center min-h-screen p-4">
       <Image
-        src="https://fastly.picsum.photos/id/24/4855/1803.jpg?hmac=9IzCKIEdID12cN392ghB32YNiQU30wSXzopw4aILC8A"
+        src="https://fastly.picsum.photos/id/20/3670/2462.jpg?hmac=CmQ0ln-k5ZqkdtLvVO23LjVAEabZQx2wOaT4pyeG10I"
         alt="Background"
         fill
         className="object-cover -z-10"
