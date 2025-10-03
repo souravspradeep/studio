@@ -25,7 +25,6 @@ import {
 const navLinks = [
   { href: '/home', label: 'Home' },
   { href: '/items', label: 'Browse Items' },
-  { href: '/match-items', label: 'AI Matcher' },
   { href: '/contact-authority', label: 'Contact' },
 ];
 

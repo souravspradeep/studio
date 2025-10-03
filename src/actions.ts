@@ -10,7 +10,6 @@ import type { Item, UserCredentials } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { db, auth } from '@/lib/firebase';
 import { collection, addDoc, getDocs, query, updateDoc, doc, getDoc, setDoc } from 'firebase/firestore';
-import { matchItems, MatchItemsInput } from '@/ai/flows/match-items';
 import { errorEmitter } from '@/lib/error-emitter';
 import { FirestorePermissionError } from '@/lib/errors';
 
@@ -120,41 +119,6 @@ export async function markItemAsReturned(itemId: string) {
       return { success: false, message: 'Permission denied', code: serverError.code };
     });
 }
-
-export async function runMatchItems(lostItemId: string, foundItemId: string) {
-    try {
-        const lostItemRef = doc(db, 'lost-items', lostItemId);
-        const foundItemRef = doc(db, 'found-items', foundItemId);
-
-        const lostItemSnap = await getDoc(lostItemRef);
-        const foundItemSnap = await getDoc(foundItemRef);
-
-        if (!lostItemSnap.exists() || !foundItemSnap.exists()) {
-            throw new Error('One or both items not found');
-        }
-
-        const lostItem = lostItemSnap.data() as Item;
-        const foundItem = foundItemSnap.data() as Item;
-
-        const input: MatchItemsInput = {
-            lostItemDescription: lostItem.description,
-            lostItemPhotoDataUri: lostItem.imageDataUri,
-            foundItemDescription: foundItem.description,
-            foundItemPhotoDataUri: foundItem.imageDataUri,
-        };
-
-        const result = await matchItems(input);
-        return result;
-
-    } catch (error: any) {
-        console.error('Error in runMatchItems:', error);
-        return {
-            matchProbability: 0,
-            reasoning: `An error occurred: ${error.message}`
-        };
-    }
-}
-
 
 export async function signUpWithEmail(credentials: UserCredentials) {
   try {
