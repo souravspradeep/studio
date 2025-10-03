@@ -53,19 +53,11 @@ export default function LoginPage() {
         });
         router.push('/home');
       } else {
-        if (result.code === 'auth/user-not-found') {
-            toast({
-                title: 'Account Not Found',
-                description: "This email isn't registered. Please sign up.",
-            });
-            router.push('/signup');
-        } else {
-            toast({
-                title: 'Login Failed',
-                description: result.message || 'Something went wrong. Please try again.',
-                variant: 'destructive',
-            });
-        }
+        toast({
+            title: 'Login Failed',
+            description: result.message || 'Something went wrong. Please try again.',
+            variant: 'destructive',
+        });
       }
     } catch (error: any) {
       toast({

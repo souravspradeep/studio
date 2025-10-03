@@ -89,7 +89,7 @@ export function LostItemForm() {
       const result = await addLostItem({
         ...values,
         ownerId: user.uid,
-        userName: user.displayName || user.email || 'Anonymous',
+        userName: user.fullName || user.email || 'Anonymous',
         userContact: user.email || '',
       });
 

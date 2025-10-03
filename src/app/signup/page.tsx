@@ -67,7 +67,7 @@ export default function SignUpPage() {
         if (result.code === 'auth/email-already-in-use') {
           form.setError('email', {
             type: 'manual',
-            message: 'Account Already Exists',
+            message: 'An account with this email already exists.',
           });
         } else {
             toast({

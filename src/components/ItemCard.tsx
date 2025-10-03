@@ -4,7 +4,7 @@
 import type { Item } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import Image from 'next/image';
-import { Clock, MapPin, CheckSquare, Info, Award, Mail, Phone } from 'lucide-react';
+import { Clock, MapPin, CheckSquare, Info, Award, Mail, Phone, User } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -170,9 +170,10 @@ export function ItemCard({ item }: { item: Item }) {
 
           <div>
             <h4 className="font-semibold">Contact {item.type === 'lost' ? 'Owner' : 'Finder'}</h4>
-            <p className="text-muted-foreground">
-              {item.userName}
-            </p>
+             <div className="flex items-center gap-2 mt-1">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <p className="text-muted-foreground">{item.userName}</p>
+             </div>
             <div className="flex items-center gap-2 mt-1">
                 <Mail className="h-4 w-4 text-muted-foreground" />
                 <a href={`mailto:${item.userContact}`} className="underline">
