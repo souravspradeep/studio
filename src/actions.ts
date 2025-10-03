@@ -12,40 +12,20 @@ import { db, auth } from '@/lib/firebase';
 import { collection, addDoc, getDocs, query, updateDoc, doc, getDoc, setDoc } from 'firebase/firestore';
 import { errorEmitter } from '@/lib/error-emitter';
 import { FirestorePermissionError } from '@/lib/errors';
-
-
-async function getItems(collectionName: string): Promise<Item[]> {
-  const collectionRef = collection(db, collectionName);
-  const q = query(collectionRef);
-  
-  try {
-    const querySnapshot = await getDocs(q);
-    const items: Item[] = [];
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      items.push({
-          id: doc.id,
-          ...data
-      } as Item);
-    });
-    return items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  } catch (serverError) {
-    const permissionError = new FirestorePermissionError({
-      path: collectionRef.path,
-      operation: 'list',
-    });
-    errorEmitter.emit('permission-error', permissionError);
-    return [];
-  }
-}
+import lostItemsData from '../data/lost-items.json';
+import foundItemsData from '../data/found-items.json';
 
 
 export async function getLostItems(): Promise<Item[]> {
-    return getItems('lost-items');
+    // This now reads from the local JSON file
+    const items: Item[] = lostItemsData as Item[];
+    return items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 export async function getFoundItems(): Promise<Item[]> {
-    return getItems('found-items');
+    // This now reads from the local JSON file
+    const items: Item[] = foundItemsData as Item[];
+    return items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 export async function addLostItem(itemData: Omit<Item, 'id' | 'type' | 'status' | 'date' | 'imageUrl'>) {
