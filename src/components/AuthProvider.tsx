@@ -8,12 +8,12 @@ import { auth, db } from '@/lib/firebase';
 import { Skeleton } from './ui/skeleton';
 
 // Augment the Firebase User type to include our custom fields
-export interface User extends FirebaseUser {
+export interface AuthUser extends FirebaseUser {
   fullName?: string;
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   isLoading: boolean;
 }
 
@@ -23,7 +23,7 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -35,7 +35,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (userDocSnap.exists()) {
           const userData = userDocSnap.data();
-          const userWithProfile = { ...firebaseUser, fullName: userData.fullName } as User;
+          const userWithProfile: AuthUser = { 
+            ...firebaseUser, 
+            fullName: userData.fullName 
+          };
           setUser(userWithProfile);
         } else {
           // Fallback if the user doc doesn't exist for some reason
