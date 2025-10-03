@@ -1,4 +1,5 @@
 'use server';
+
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -8,6 +9,9 @@ import { revalidatePath } from 'next/cache';
 import { db, auth } from '@/lib/firebase';
 import { collection, addDoc, getDocs, query, updateDoc, doc, getDoc, setDoc } from 'firebase/firestore';
 import { matchItems, MatchItemsInput } from '@/ai/flows/match-items';
+import { errorEmitter } from '@/lib/error-emitter';
+import { FirestorePermissionError } from '@/lib/errors';
+
 
 async function getItems(collectionName: string): Promise<Item[]> {
   const q = query(collection(db, collectionName));
@@ -40,12 +44,28 @@ export async function addLostItem(itemData: Omit<Item, 'id' | 'type' | 'status' 
         imageUrl: itemData.imageDataUri || `https://picsum.photos/400/300?random=${crypto.randomUUID()}`,
         ...itemData,
     };
-    const docRef = await addDoc(collection(db, "lost-items"), newItem);
+    
+    try {
+        const docRef = await addDoc(collection(db, "lost-items"), newItem)
+          .catch((serverError) => {
+            const permissionError = new FirestorePermissionError({
+              path: `lost-items`,
+              operation: 'create',
+              requestResourceData: newItem,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            // Re-throw to ensure promise is rejected for the calling function
+            throw serverError;
+          });
 
-    revalidatePath('/');
-    revalidatePath('/items');
-    revalidatePath('/lost-item');
-    return { success: true, item: { id: docRef.id, ...newItem } };
+        revalidatePath('/');
+        revalidatePath('/items');
+        revalidatePath('/lost-item');
+        return { success: true, item: { id: docRef.id, ...newItem } };
+    } catch(e) {
+      // Errors are now handled in the .catch() block, but this keeps the function signature consistent
+      return { success: false, message: (e as Error).message };
+    }
 }
 
 export async function addFoundItem(itemData: Omit<Item, 'id' | 'type' | 'status' | 'date' | 'imageUrl'>) {
@@ -56,30 +76,50 @@ export async function addFoundItem(itemData: Omit<Item, 'id' | 'type' | 'status'
         imageUrl: itemData.imageDataUri || `https://picsum.photos/400/300?random=${crypto.randomUUID()}`,
         ...itemData,
     };
-    const docRef = await addDoc(collection(db, "found-items"
-), newItem);
     
-    revalidatePath('/');
-    revalidatePath('/items');
-    revalidatePath('/found-item');
-    return { success: true, item: { id: docRef.id, ...newItem } };
+    try {
+        const docRef = await addDoc(collection(db, "found-items"), newItem)
+          .catch((serverError) => {
+            const permissionError = new FirestorePermissionError({
+              path: `found-items`,
+              operation: 'create',
+              requestResourceData: newItem,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            throw serverError;
+          });
+
+        revalidatePath('/');
+        revalidatePath('/items');
+        revalidatePath('/found-item');
+        return { success: true, item: { id: docRef.id, ...newItem } };
+    } catch (e) {
+      return { success: false, message: (e as Error).message };
+    }
 }
 
 export async function markItemAsReturned(itemId: string) {
     const itemRef = doc(db, 'lost-items', itemId);
+    const updateData = { status: 'returned' };
     
     try {
-        await updateDoc(itemRef, {
-            status: 'returned'
-        });
+        await updateDoc(itemRef, updateData)
+          .catch((serverError) => {
+            const permissionError = new FirestorePermissionError({
+              path: itemRef.path,
+              operation: 'update',
+              requestResourceData: updateData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            throw serverError;
+          });
 
         revalidatePath('/');
         revalidatePath('/items');
 
         return { success: true };
     } catch (error) {
-        console.error("Error updating document: ", error);
-        return { success: false, message: 'Failed to update item status.' };
+        return { success: false, message: (error as Error).message || 'Failed to update item status.' };
     }
 }
 
@@ -127,13 +167,23 @@ export async function signUpWithEmail(credentials: UserCredentials) {
     );
 
     const user = userCredential.user;
-
-    // Now, store the user's full name and email in Firestore
-    await setDoc(doc(db, "users", user.uid), {
+    const userData = {
       uid: user.uid,
       email: user.email,
       fullName: credentials.fullName,
-    });
+    };
+    
+    // Now, store the user's full name and email in Firestore
+    await setDoc(doc(db, "users", user.uid), userData)
+      .catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: `users/${user.uid}`,
+          operation: 'create',
+          requestResourceData: userData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        throw serverError;
+      });
 
     return { success: true, userId: user.uid };
   } catch (error: any) {

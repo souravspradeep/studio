@@ -1,4 +1,3 @@
-
 'use client';
 
 import './globals.css';
@@ -8,6 +7,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { PageTransition } from '@/components/PageTransition';
 import { AuthProvider } from '@/components/AuthProvider';
 import { usePathname } from 'next/navigation';
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 
 export default function RootLayout({
@@ -38,6 +38,7 @@ export default function RootLayout({
             </PageTransition>
           </main>
           <Toaster />
+          <FirebaseErrorListener />
         </AuthProvider>
       </body>
     </html>
