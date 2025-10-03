@@ -63,7 +63,7 @@ export async function addLostItem(itemData: Omit<Item, 'id' | 'type' | 'status' 
     revalidatePath('/items');
     return { success: true };
   } catch (error: any) {
-    return { success: false, message: error.message };
+    return { success: false, message: error.message, code: error.code };
   }
 }
 
@@ -94,7 +94,7 @@ export async function addFoundItem(itemData: Omit<Item, 'id' | 'type' | 'status'
         revalidatePath('/items');
         return { success: true };
     } catch (error: any) {
-        return { success: false, message: error.message };
+        return { success: false, message: error.message, code: error.code };
     }
 }
 
@@ -118,7 +118,7 @@ export async function markItemAsReturned(itemId: string) {
     revalidatePath('/items');
     return { success: true };
   } catch (error: any) {
-    return { success: false, message: error.message };
+    return { success: false, message: error.message, code: error.code };
   }
 }
 
@@ -198,6 +198,7 @@ export async function signInWithEmail(credentials: UserCredentials) {
     );
     return { success: true, userId: userCredential.user.uid, code: 'success' };
   } catch (error: any) {
+    // This ensures we always return the error code for debugging.
     return { success: false, message: error.message, code: error.code };
   }
 }
