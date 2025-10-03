@@ -68,6 +68,7 @@ export function ItemCard({ item }: { item: Item }) {
   };
   
   const isOwner = user && user.uid === item.ownerId;
+  const imageUrl = item.imageUrl || `https://picsum.photos/seed/${item.id}/400/300`;
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -75,7 +76,7 @@ export function ItemCard({ item }: { item: Item }) {
         <Card className="flex flex-col overflow-hidden h-full shadow-md hover:shadow-xl transition-shadow duration-300 rounded-xl cursor-pointer">
           <div className="relative w-full h-40">
             <Image
-              src={item.imageUrl}
+              src={imageUrl}
               alt={item.name}
               fill
               className="object-cover"
@@ -136,7 +137,7 @@ export function ItemCard({ item }: { item: Item }) {
         </DialogHeader>
         <div className="space-y-4">
           <div className="relative w-full h-48 rounded-lg overflow-hidden">
-            <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
+            <Image src={imageUrl} alt={item.name} fill className="object-cover" />
           </div>
           <p>{item.description}</p>
           <div>
