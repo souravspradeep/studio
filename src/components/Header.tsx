@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Search, Menu, LogIn, LogOut, User } from 'lucide-react';
+import { Search, Menu, LogOut, User } from 'lucide-react';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 import { usePathname, useRouter } from 'next/navigation';
@@ -92,10 +92,31 @@ export default function Header() {
            ))}
         </nav>
 
-        <div className="hidden md:flex items-center space-x-2">
-            <Button variant="ghost" onClick={handleLogout}>
-              <LogOut className="mr-2"/>Logout
-            </Button>
+        <div className="hidden md:flex items-center space-x-4">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="flex items-center gap-2">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={user?.photoURL || ''} alt={user?.fullName || 'User'} />
+                  <AvatarFallback>
+                    {user?.fullName ? user.fullName.charAt(0).toUpperCase() : <User />}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="font-semibold">{user?.fullName || 'User'}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>
+                <p className="font-bold">{user?.fullName || 'User'}</p>
+                <p className="text-xs text-muted-foreground font-normal">{user?.email}</p>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2" />
+                <span>Sign out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <div className="md:hidden">

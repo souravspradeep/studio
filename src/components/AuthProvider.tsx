@@ -2,9 +2,15 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
 import { Skeleton } from './ui/skeleton';
+
+// Augment the Firebase User type to include our custom fields
+export interface User extends FirebaseUser {
+  fullName?: string;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -21,15 +27,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        // User is signed in, fetch additional user data from Firestore
+        const userDocRef = doc(db, 'users', firebaseUser.uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
+          setUser({
+            ...firebaseUser,
+            fullName: userData.fullName,
+          });
+        } else {
+          // Fallback if the user doc doesn't exist for some reason
+          setUser(firebaseUser);
+        }
+      } else {
+        // User is signed out
+        setUser(null);
+      }
       setIsLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
-  // Show a loading state while Firebase auth is initializing
   if (isLoading) {
     return (
       <div className="w-full h-screen flex items-center justify-center">

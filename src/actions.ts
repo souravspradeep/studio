@@ -4,6 +4,7 @@
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  updateProfile
 } from 'firebase/auth';
 import type { Item, UserCredentials } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
@@ -164,6 +165,11 @@ export async function signUpWithEmail(credentials: UserCredentials) {
     );
 
     const user = userCredential.user;
+    
+    // Update the Firebase Auth user profile
+    await updateProfile(user, { displayName: credentials.fullName });
+
+    // Create a document in the 'users' collection
     const userData = {
       uid: user.uid,
       email: user.email,
