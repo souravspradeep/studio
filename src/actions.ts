@@ -77,7 +77,7 @@ export async function markItemAsReturned(itemId: string) {
         revalidatePath('/items');
 
         return { success: true };
-    } catch(error) {
+    } catch (error) {
         console.error("Error updating document: ", error);
         return { success: false, message: 'Failed to update item status.' };
     }
