@@ -35,10 +35,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (userDocSnap.exists()) {
           const userData = userDocSnap.data();
-          setUser({
-            ...firebaseUser,
-            fullName: userData.fullName,
-          });
+          const userWithProfile = { ...firebaseUser, fullName: userData.fullName } as User;
+          setUser(userWithProfile);
         } else {
           // Fallback if the user doc doesn't exist for some reason
           setUser(firebaseUser);
