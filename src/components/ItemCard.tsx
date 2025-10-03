@@ -68,38 +68,58 @@ export function ItemCard({ item }: { item: Item }) {
   };
   
   const isOwner = user && user.uid === item.ownerId;
-  const imageUrl = item.imageUrl || `https://picsum.photos/seed/${item.id}/400/300`;
+  const imageUrl = item.imageUrl;
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogTrigger asChild>
         <Card className="flex flex-col overflow-hidden h-full shadow-md hover:shadow-xl transition-shadow duration-300 rounded-xl cursor-pointer">
-          <div className="relative w-full h-40">
-            <Image
-              src={imageUrl}
-              alt={item.name}
-              fill
-              className="object-cover"
-              data-ai-hint={item.aiHint}
-            />
-            <Badge
-              className="absolute top-2 right-2"
-              variant={
-                item.status === 'returned'
-                  ? 'default'
+          {imageUrl && (
+            <div className="relative w-full h-40">
+              <Image
+                src={imageUrl}
+                alt={item.name}
+                fill
+                className="object-cover"
+                data-ai-hint={item.aiHint}
+              />
+              <Badge
+                className="absolute top-2 right-2"
+                variant={
+                  item.status === 'returned'
+                    ? 'default'
+                    : item.type === 'lost'
+                    ? 'destructive'
+                    : 'secondary'
+                }
+              >
+                {item.status === 'returned'
+                  ? 'Returned'
                   : item.type === 'lost'
-                  ? 'destructive'
-                  : 'secondary'
-              }
-            >
-              {item.status === 'returned'
-                ? 'Returned'
-                : item.type === 'lost'
-                ? 'Lost'
-                : 'Found'}
-            </Badge>
-          </div>
+                  ? 'Lost'
+                  : 'Found'}
+              </Badge>
+            </div>
+          )}
           <CardContent className="p-4 flex flex-col flex-grow">
+            {!imageUrl && (
+              <Badge
+                className="absolute top-2 right-2"
+                variant={
+                  item.status === 'returned'
+                    ? 'default'
+                    : item.type === 'lost'
+                    ? 'destructive'
+                    : 'secondary'
+                }
+              >
+                {item.status === 'returned'
+                  ? 'Returned'
+                  : item.type === 'lost'
+                  ? 'Lost'
+                  : 'Found'}
+              </Badge>
+            )}
             <h3 className="font-bold text-lg mb-1 truncate">{item.name}</h3>
             <p className="text-sm text-muted-foreground line-clamp-2 flex-grow">
               {item.description}
@@ -136,9 +156,11 @@ export function ItemCard({ item }: { item: Item }) {
           </div>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="relative w-full h-48 rounded-lg overflow-hidden">
-            <Image src={imageUrl} alt={item.name} fill className="object-cover" />
-          </div>
+          {imageUrl && (
+            <div className="relative w-full h-48 rounded-lg overflow-hidden">
+              <Image src={imageUrl} alt={item.name} fill className="object-cover" />
+            </div>
+          )}
           <p>{item.description}</p>
           <div>
             <h4 className="font-semibold">

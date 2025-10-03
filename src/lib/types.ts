@@ -4,8 +4,8 @@ export type Item = {
   type: 'lost' | 'found';
   name: string;
   description: string;
-  imageUrl: string;
-  imageDataUri: string;
+  imageUrl?: string;
+  imageDataUri?: string;
   location?: string;
   aiHint?: string;
   category: string;

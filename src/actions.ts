@@ -28,13 +28,12 @@ export async function getFoundItems(): Promise<Item[]> {
     return items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
-export async function addLostItem(itemData: Omit<Item, 'id' | 'type' | 'status' | 'date' | 'imageUrl'>) {
+export async function addLostItem(itemData: Omit<Item, 'id' | 'type' | 'status' | 'date'>) {
   const collectionRef = collection(db, "lost-items");
   const newItem: Omit<Item, 'id'> = {
     type: 'lost',
     status: 'open',
     date: new Date().toISOString(),
-    imageUrl: itemData.imageDataUri || `https://picsum.photos/400/300?random=${crypto.randomUUID()}`,
     ...itemData,
   };
   
@@ -54,13 +53,12 @@ export async function addLostItem(itemData: Omit<Item, 'id' | 'type' | 'status' 
     });
 }
 
-export async function addFoundItem(itemData: Omit<Item, 'id' | 'type' | 'status' | 'date' | 'imageUrl'>) {
+export async function addFoundItem(itemData: Omit<Item, 'id' | 'type' | 'status' | 'date'>) {
   const collectionRef = collection(db, "found-items");
   const newItem: Omit<Item, 'id'> = {
     type: 'found',
     status: 'open',
     date: new Date().toISOString(),
-    imageUrl: itemData.imageDataUri || `https://picsum.photos/400/300?random=${crypto.randomUUID()}`,
     ...itemData,
   };
   
