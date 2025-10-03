@@ -204,7 +204,7 @@ export async function signInWithEmail(credentials: UserCredentials) {
       credentials.email,
       credentials.password
     );
-    return { success: true, userId: userCredential.user.uid, code: 'success' };
+    return { success: true, userId: userCredential.user.uid };
   } catch (error: any) {
     return { success: false, message: error.message, code: error.code };
   }

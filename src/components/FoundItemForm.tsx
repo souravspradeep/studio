@@ -26,7 +26,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Checkbox } from './ui/checkbox';
 import Image from 'next/image';
-import { useAuth } from './AuthProvider';
+import { useAuth, type AuthUser } from './AuthProvider';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Item name must be at least 2 characters.' }),
@@ -92,6 +92,7 @@ export function FoundItemForm() {
         ...values,
         userName: user.fullName || user.email || 'Anonymous',
         userContact: user.email || '',
+        ownerId: user.uid,
       });
 
       if (result.success) {

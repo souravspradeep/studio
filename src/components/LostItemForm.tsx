@@ -25,7 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Upload, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { addLostItem } from '@/actions';
-import { useAuth } from './AuthProvider';
+import { useAuth, type AuthUser } from './AuthProvider';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Item name must be at least 2 characters.' }),
