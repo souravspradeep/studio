@@ -1,3 +1,4 @@
+
 'use server';
 
 import {
@@ -34,8 +35,6 @@ async function getItems(collectionName: string): Promise<Item[]> {
       operation: 'list',
     });
     errorEmitter.emit('permission-error', permissionError);
-    // Return an empty array or rethrow a more generic error for the client
-    // if you don't want the client to crash. Here we'll return empty.
     return [];
   }
 }
@@ -49,7 +48,7 @@ export async function getFoundItems(): Promise<Item[]> {
     return getItems('found-items');
 }
 
-export async function addLostItem(itemData: Omit<Item, 'id' | 'type' | 'status' | 'date' | 'imageUrl'> & { ownerId: string }) {
+export async function addLostItem(itemData: Omit<Item, 'id' | 'type' | 'status' | 'date' | 'imageUrl'>) {
   const collectionRef = collection(db, "lost-items");
   const newItem: Omit<Item, 'id'> = {
     type: 'lost',

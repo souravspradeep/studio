@@ -13,6 +13,7 @@ export type Item = {
   status: 'open' | 'returned';
   userName: string;
   userContact: string;
+  mobileNumber?: string;
   submittedToOffice?: boolean;
   ownerId?: string;
 };

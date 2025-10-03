@@ -33,8 +33,7 @@ const formSchema = z.object({
   description: z.string().min(10, { message: 'Description must be at least 10 characters.' }),
   location: z.string().min(3, { message: 'Please specify where you last had the item.' }),
   imageDataUri: z.string().optional(),
-  userName: z.string().min(2, { message: 'Your name must be at least 2 characters.' }),
-  userContact: z.string().min(5, { message: 'Please enter a valid contact information (email or phone).' }),
+  mobileNumber: z.string().optional(),
 });
 
 export function LostItemForm() {
@@ -51,9 +50,8 @@ export function LostItemForm() {
       category: '',
       description: '',
       location: '',
-      userName: '',
-      userContact: '',
       imageDataUri: '',
+      mobileNumber: '',
     },
   });
 
@@ -86,6 +84,8 @@ export function LostItemForm() {
       const result = await addLostItem({
         ...values,
         ownerId: user.uid,
+        userName: user.displayName || 'Anonymous',
+        userContact: user.email || '',
       });
 
       if (result.success) {
@@ -96,12 +96,12 @@ export function LostItemForm() {
         form.reset();
         router.push('/home');
       } else {
-        throw new Error('Failed to add item');
+        throw new Error(result.message || 'Failed to add item');
       }
-    } catch (error) {
+    } catch (error: any) {
        toast({
         title: 'Submission Failed',
-        description: 'Something went wrong. Please try again.',
+        description: error.message || 'Something went wrong. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -233,27 +233,14 @@ export function LostItemForm() {
             />
             <FormField
               control={form.control}
-              name="userName"
+              name="mobileNumber"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Your Name</FormLabel>
+                  <FormLabel>Mobile Number (Optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="John Doe" {...field} />
+                    <Input type="tel" placeholder="Your mobile number" {...field} />
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="userContact"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Contact Information</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Your Email or Phone Number" {...field} />
-                  </FormControl>
-                   <FormDescription>We will use this to notify you if your item is found.</FormDescription>
+                   <FormDescription>Provide a mobile number for easier contact.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

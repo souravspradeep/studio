@@ -26,6 +26,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Checkbox } from './ui/checkbox';
 import Image from 'next/image';
+import { useAuth } from './AuthProvider';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Item name must be at least 2 characters.' }),
@@ -33,14 +34,14 @@ const formSchema = z.object({
   description: z.string().min(10, { message: 'Description must be at least 10 characters.' }),
   location: z.string().min(3, { message: 'Please specify where you found the item.' }),
   imageDataUri: z.string().optional(),
-  userName: z.string().min(2, { message: 'Your name must be at least 2 characters.' }),
-  userContact: z.string().min(5, { message: 'Please enter a valid contact information (email or phone).' }),
+  mobileNumber: z.string().optional(),
   submittedToOffice: z.boolean().default(false),
 });
 
 export function FoundItemForm() {
   const { toast } = useToast();
   const router = useRouter();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -51,10 +52,9 @@ export function FoundItemForm() {
       category: '',
       description: '',
       location: '',
-      userName: '',
-      userContact: '',
       submittedToOffice: false,
       imageDataUri: '',
+      mobileNumber: '',
     },
   });
 
@@ -72,9 +72,23 @@ export function FoundItemForm() {
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!user) {
+      toast({
+        title: 'Authentication Required',
+        description: 'You must be logged in to report a found item.',
+        variant: 'destructive',
+      });
+      router.push('/login');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const result = await addFoundItem(values);
+      const result = await addFoundItem({
+        ...values,
+        userName: user.displayName || 'Anonymous',
+        userContact: user.email || '',
+      });
 
       if (result.success) {
         toast({
@@ -84,12 +98,12 @@ export function FoundItemForm() {
         form.reset();
         router.push('/items');
       } else {
-        throw new Error('Failed to add item');
+        throw new Error(result.message || 'Failed to add item');
       }
-    } catch (error) {
+    } catch (error: any) {
        toast({
         title: 'Submission Failed',
-        description: 'Something went wrong. Please try again.',
+        description: error.message || 'Something went wrong. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -221,6 +235,20 @@ export function FoundItemForm() {
             />
             <FormField
               control={form.control}
+              name="mobileNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Mobile Number (Optional)</FormLabel>
+                  <FormControl>
+                    <Input type="tel" placeholder="Your mobile number" {...field} />
+                  </FormControl>
+                   <FormDescription>Provide a mobile number for easier contact.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
               name="submittedToOffice"
               render={({ field }) => (
                 <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
@@ -238,33 +266,6 @@ export function FoundItemForm() {
                       Check this box if you have already turned the item in.
                     </FormDescription>
                   </div>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="userName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Your Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Jane Doe" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="userContact"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Your Contact Information</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Your Email or Phone Number" {...field} />
-                  </FormControl>
-                   <FormDescription>This will only be shared with the potential owner.</FormDescription>
-                  <FormMessage />
                 </FormItem>
               )}
             />
