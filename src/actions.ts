@@ -37,17 +37,18 @@ export async function getFoundItems(): Promise<Item[]> {
 }
 
 export async function addLostItem(itemData: Omit<Item, 'id' | 'type' | 'status' | 'date' | 'imageUrl'> & { ownerId: string }) {
+  try {
     const newItem: Omit<Item, 'id'> = {
-        type: 'lost',
-        status: 'open',
-        date: new Date().toISOString(),
-        imageUrl: itemData.imageDataUri || `https://picsum.photos/400/300?random=${crypto.randomUUID()}`,
-        ...itemData,
+      type: 'lost',
+      status: 'open',
+      date: new Date().toISOString(),
+      imageUrl: itemData.imageDataUri || `https://picsum.photos/400/300?random=${crypto.randomUUID()}`,
+      ...itemData,
     };
     
     const collectionRef = collection(db, "lost-items");
     
-    addDoc(collectionRef, newItem)
+    await addDoc(collectionRef, newItem)
       .catch((serverError) => {
         const permissionError = new FirestorePermissionError({
           path: `lost-items`,
@@ -55,44 +56,54 @@ export async function addLostItem(itemData: Omit<Item, 'id' | 'type' | 'status' 
           requestResourceData: newItem,
         });
         errorEmitter.emit('permission-error', permissionError);
+        throw serverError;
       });
 
     revalidatePath('/');
     revalidatePath('/items');
-    revalidatePath('/lost-item');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
 }
 
 export async function addFoundItem(itemData: Omit<Item, 'id' | 'type' | 'status' | 'date' | 'imageUrl'>) {
-    const newItem: Omit<Item, 'id'> = {
-        type: 'found',
-        status: 'open',
-        date: new Date().toISOString(),
-        imageUrl: itemData.imageDataUri || `https://picsum.photos/400/300?random=${crypto.randomUUID()}`,
-        ...itemData,
-    };
-    
-    const collectionRef = collection(db, "found-items");
-    
-    addDoc(collectionRef, newItem)
-      .catch((serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: `found-items`,
-          operation: 'create',
-          requestResourceData: newItem,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-      });
+    try {
+        const newItem: Omit<Item, 'id'> = {
+            type: 'found',
+            status: 'open',
+            date: new Date().toISOString(),
+            imageUrl: itemData.imageDataUri || `https://picsum.photos/400/300?random=${crypto.randomUUID()}`,
+            ...itemData,
+        };
+        
+        const collectionRef = collection(db, "found-items");
+        
+        await addDoc(collectionRef, newItem)
+          .catch((serverError) => {
+            const permissionError = new FirestorePermissionError({
+              path: `found-items`,
+              operation: 'create',
+              requestResourceData: newItem,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            throw serverError;
+          });
 
-    revalidatePath('/');
-    revalidatePath('/items');
-    revalidatePath('/found-item');
+        revalidatePath('/');
+        revalidatePath('/items');
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, message: error.message };
+    }
 }
 
 export async function markItemAsReturned(itemId: string) {
+  try {
     const itemRef = doc(db, 'lost-items', itemId);
     const updateData = { status: 'returned' };
     
-    updateDoc(itemRef, updateData)
+    await updateDoc(itemRef, updateData)
       .catch((serverError) => {
         const permissionError = new FirestorePermissionError({
           path: itemRef.path,
@@ -100,10 +111,15 @@ export async function markItemAsReturned(itemId: string) {
           requestResourceData: updateData,
         });
         errorEmitter.emit('permission-error', permissionError);
+        throw serverError;
       });
 
     revalidatePath('/');
     revalidatePath('/items');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
 }
 
 export async function runMatchItems(lostItemId: string, foundItemId: string) {
