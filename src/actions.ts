@@ -14,17 +14,30 @@ import { FirestorePermissionError } from '@/lib/errors';
 
 
 async function getItems(collectionName: string): Promise<Item[]> {
-  const q = query(collection(db, collectionName));
-  const querySnapshot = await getDocs(q);
-  const items: Item[] = [];
-  querySnapshot.forEach((doc) => {
-    const data = doc.data();
-    items.push({
-        id: doc.id,
-        ...data
-    } as Item);
-  });
-  return items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const collectionRef = collection(db, collectionName);
+  const q = query(collectionRef);
+  
+  try {
+    const querySnapshot = await getDocs(q);
+    const items: Item[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      items.push({
+          id: doc.id,
+          ...data
+      } as Item);
+    });
+    return items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  } catch (serverError) {
+    const permissionError = new FirestorePermissionError({
+      path: collectionRef.path,
+      operation: 'list',
+    });
+    errorEmitter.emit('permission-error', permissionError);
+    // Return an empty array or rethrow a more generic error for the client
+    // if you don't want the client to crash. Here we'll return empty.
+    return [];
+  }
 }
 
 
@@ -37,89 +50,75 @@ export async function getFoundItems(): Promise<Item[]> {
 }
 
 export async function addLostItem(itemData: Omit<Item, 'id' | 'type' | 'status' | 'date' | 'imageUrl'> & { ownerId: string }) {
-  try {
-    const newItem: Omit<Item, 'id'> = {
-      type: 'lost',
-      status: 'open',
-      date: new Date().toISOString(),
-      imageUrl: itemData.imageDataUri || `https://picsum.photos/400/300?random=${crypto.randomUUID()}`,
-      ...itemData,
-    };
-    
-    const collectionRef = collection(db, "lost-items");
-    
-    await addDoc(collectionRef, newItem)
-      .catch((serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: `lost-items`,
-          operation: 'create',
-          requestResourceData: newItem,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        throw serverError;
-      });
-
-    revalidatePath('/');
-    revalidatePath('/items');
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, message: error.message, code: error.code };
-  }
-}
-
-export async function addFoundItem(itemData: Omit<Item, 'id' | 'type' | 'status' | 'date' | 'imageUrl'>) {
-    try {
-        const newItem: Omit<Item, 'id'> = {
-            type: 'found',
-            status: 'open',
-            date: new Date().toISOString(),
-            imageUrl: itemData.imageDataUri || `https://picsum.photos/400/300?random=${crypto.randomUUID()}`,
-            ...itemData,
-        };
-        
-        const collectionRef = collection(db, "found-items");
-        
-        await addDoc(collectionRef, newItem)
-          .catch((serverError) => {
-            const permissionError = new FirestorePermissionError({
-              path: `found-items`,
-              operation: 'create',
-              requestResourceData: newItem,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-            throw serverError;
-          });
-
+  const collectionRef = collection(db, "lost-items");
+  const newItem: Omit<Item, 'id'> = {
+    type: 'lost',
+    status: 'open',
+    date: new Date().toISOString(),
+    imageUrl: itemData.imageDataUri || `https://picsum.photos/400/300?random=${crypto.randomUUID()}`,
+    ...itemData,
+  };
+  
+  return addDoc(collectionRef, newItem)
+    .then(() => {
         revalidatePath('/');
         revalidatePath('/items');
         return { success: true };
-    } catch (error: any) {
-        return { success: false, message: error.message, code: error.code };
-    }
+    }).catch((serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: `lost-items`,
+        operation: 'create',
+        requestResourceData: newItem,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+      return { success: false, message: 'Permission denied', code: serverError.code };
+    });
+}
+
+export async function addFoundItem(itemData: Omit<Item, 'id' | 'type' | 'status' | 'date' | 'imageUrl'>) {
+  const collectionRef = collection(db, "found-items");
+  const newItem: Omit<Item, 'id'> = {
+    type: 'found',
+    status: 'open',
+    date: new Date().toISOString(),
+    imageUrl: itemData.imageDataUri || `https://picsum.photos/400/300?random=${crypto.randomUUID()}`,
+    ...itemData,
+  };
+  
+  return addDoc(collectionRef, newItem)
+    .then(() => {
+        revalidatePath('/');
+        revalidatePath('/items');
+        return { success: true };
+    }).catch((serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: `found-items`,
+        operation: 'create',
+        requestResourceData: newItem,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+      return { success: false, message: 'Permission denied', code: serverError.code };
+    });
 }
 
 export async function markItemAsReturned(itemId: string) {
-  try {
-    const itemRef = doc(db, 'lost-items', itemId);
-    const updateData = { status: 'returned' };
-    
-    await updateDoc(itemRef, updateData)
-      .catch((serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: itemRef.path,
-          operation: 'update',
-          requestResourceData: updateData,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        throw serverError;
-      });
+  const itemRef = doc(db, 'lost-items', itemId);
+  const updateData = { status: 'returned' };
 
-    revalidatePath('/');
-    revalidatePath('/items');
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, message: error.message, code: error.code };
-  }
+  return updateDoc(itemRef, updateData)
+    .then(() => {
+        revalidatePath('/');
+        revalidatePath('/items');
+        return { success: true };
+    }).catch((serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: itemRef.path,
+        operation: 'update',
+        requestResourceData: updateData,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+      return { success: false, message: 'Permission denied', code: serverError.code };
+    });
 }
 
 export async function runMatchItems(lostItemId: string, foundItemId: string) {
@@ -185,6 +184,10 @@ export async function signUpWithEmail(credentials: UserCredentials) {
 
     return { success: true, userId: user.uid };
   } catch (error: any) {
+    if (error instanceof FirestorePermissionError) {
+      // It's already been emitted, just return failure
+      return { success: false, message: error.message, code: 'permission-denied' };
+    }
     return { success: false, message: error.message, code: error.code };
   }
 }
@@ -198,7 +201,6 @@ export async function signInWithEmail(credentials: UserCredentials) {
     );
     return { success: true, userId: userCredential.user.uid, code: 'success' };
   } catch (error: any) {
-    // This ensures we always return the error code for debugging.
     return { success: false, message: error.message, code: error.code };
   }
 }
