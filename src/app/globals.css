@@ -6,6 +6,12 @@
   background: linear-gradient(to right, #e0e7ff, #fde2e4);
 }
 
+.pattern-background {
+  background-color: hsl(var(--background));
+  background-image: radial-gradient(hsl(var(--muted)) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
 .btn-gradient {
     background-image: linear-gradient(to right, hsl(var(--primary)), hsl(var(--accent)));
     color: hsl(var(--primary-foreground));

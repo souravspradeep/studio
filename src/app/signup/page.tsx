@@ -88,7 +88,7 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4 background-gradient">
+    <div className="flex items-center justify-center min-h-screen p-4 pattern-background">
       <Card className="w-full max-w-md shadow-2xl rounded-2xl bg-white/90 backdrop-blur-sm">
         <CardHeader className="text-center">
           <CardTitle className="text-4xl font-bold">FindIt</CardTitle>
