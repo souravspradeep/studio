@@ -24,7 +24,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { addLostItem } from '@/app/actions';
+import { addLostItem } from '@/actions';
 import { useAuth } from './AuthProvider';
 
 const formSchema = z.object({

@@ -21,7 +21,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { signInWithEmail } from '@/app/actions';
+import { signInWithEmail } from '@/actions';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),

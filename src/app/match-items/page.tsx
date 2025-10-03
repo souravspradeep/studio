@@ -1,5 +1,5 @@
 import { MatchItems } from '@/components/MatchItems';
-import { getFoundItems, getLostItems } from '@/app/actions';
+import { getFoundItems, getLostItems } from '@/actions';
 
 export default async function MatchItemsPage() {
   const lostItems = await getLostItems();

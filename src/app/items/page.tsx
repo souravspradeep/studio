@@ -1,6 +1,6 @@
 
 import { ItemCard } from '@/components/ItemCard';
-import { getFoundItems, getLostItems } from '@/app/actions';
+import { getFoundItems, getLostItems } from '@/actions';
 import { ListFilter, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';

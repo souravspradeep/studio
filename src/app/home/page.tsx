@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ArrowRight, CheckCircle, FileText, FileQuestion, FilePlus } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getLostItems } from '@/app/actions';
+import { getLostItems } from '@/actions';
 import { ItemCard } from '@/components/ItemCard';
 
 

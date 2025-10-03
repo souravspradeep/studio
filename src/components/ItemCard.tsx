@@ -28,7 +28,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { markItemAsReturned } from '@/app/actions';
+import { markItemAsReturned } from '@/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 import { useAuth } from './AuthProvider';

@@ -21,7 +21,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { addFoundItem } from '@/app/actions';
+import { addFoundItem } from '@/actions';
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Checkbox } from './ui/checkbox';
