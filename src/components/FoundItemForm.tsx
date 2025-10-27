@@ -72,12 +72,6 @@ export function FoundItemForm() {
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (isAuthLoading) {
-        toast({ title: 'Please wait', description: 'Verifying your login status...' });
-        // Use a small delay to allow auth state to propagate
-        setTimeout(() => onSubmit(values), 1000);
-        return;
-    }
     if (!user) {
       toast({
         title: 'Authentication Required',
@@ -278,7 +272,7 @@ export function FoundItemForm() {
             />
             <div className="flex gap-4 pt-4">
                 <Button type="button" variant="outline" className="w-full" onClick={() => form.reset()} disabled={isSubmitting}>Cancel</Button>
-                <Button type="submit" className="w-full bg-accent hover:bg-accent/90" disabled={isSubmitting}>
+                <Button type="submit" className="w-full bg-accent hover:bg-accent/90" disabled={isSubmitting || isAuthLoading}>
                   {isSubmitting ? 'Submitting...' : 'Report Found Item'}
                 </Button>
             </div>
