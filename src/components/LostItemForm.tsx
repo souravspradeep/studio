@@ -70,7 +70,9 @@ export function LostItemForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (isAuthLoading) {
-        toast({ title: 'Please wait', description: 'Checking your login status...' });
+        toast({ title: 'Please wait', description: 'Verifying your login status...' });
+        // Use a small delay to allow auth state to propagate
+        setTimeout(() => onSubmit(values), 1000);
         return;
     }
     
