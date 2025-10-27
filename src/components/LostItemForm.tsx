@@ -25,7 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Upload, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { addLostItem } from '@/actions';
-import { useAuth, type AuthUser } from './AuthProvider';
+import { useAuth } from './AuthProvider';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Item name must be at least 2 characters.' }),
@@ -69,13 +69,13 @@ export function LostItemForm() {
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    // With a mock user, this check is simpler but good practice
     if (!user) {
       toast({
-        title: 'Authentication Required',
-        description: 'You must be logged in to report a lost item.',
+        title: 'Authentication Error',
+        description: 'Mock user not found. Please refresh.',
         variant: 'destructive',
       });
-      router.push('/login');
       return;
     }
 
@@ -96,7 +96,7 @@ export function LostItemForm() {
         form.reset();
         router.push('/home');
       } else {
-        throw new Error(result.message || 'Failed to add item');
+        throw new Error('Failed to add item');
       }
     } catch (error: any) {
        toast({

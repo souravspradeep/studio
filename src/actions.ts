@@ -1,153 +1,106 @@
 
 'use server';
 
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  updateProfile
-} from 'firebase/auth';
 import type { Item, UserCredentials } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
-import { db, auth } from '@/lib/firebase';
-import { collection, addDoc, getDocs, query, updateDoc, doc, getDoc, setDoc } from 'firebase/firestore';
-import { errorEmitter } from '@/lib/error-emitter';
-import { FirestorePermissionError } from '@/lib/errors';
-import lostItemsData from '../data/lost-items.json';
-import foundItemsData from '../data/found-items.json';
+import { promises as fs } from 'fs';
+import path from 'path';
+
+// Define paths to the JSON files
+const lostItemsPath = path.join(process.cwd(), 'data/lost-items.json');
+const foundItemsPath = path.join(process.cwd(), 'data/found-items.json');
+
+async function readItems(filePath: string): Promise<Item[]> {
+    try {
+        const fileContent = await fs.readFile(filePath, 'utf-8');
+        return JSON.parse(fileContent);
+    } catch (error) {
+        // If the file doesn't exist or is empty, return an empty array
+        return [];
+    }
+}
+
+async function writeItems(filePath: string, items: Item[]) {
+    await fs.writeFile(filePath, JSON.stringify(items, null, 2), 'utf-8');
+}
 
 
 export async function getLostItems(): Promise<Item[]> {
-    // This now reads from the local JSON file
-    const items: Item[] = lostItemsData as Item[];
+    const items = await readItems(lostItemsPath);
     return items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 export async function getFoundItems(): Promise<Item[]> {
-    // This now reads from the local JSON file
-    const items: Item[] = foundItemsData as Item[];
+    const items = await readItems(foundItemsPath);
     return items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 export async function addLostItem(itemData: Omit<Item, 'id' | 'type' | 'status' | 'date'>) {
-  const collectionRef = collection(db, "lost-items");
-  const newItem: Omit<Item, 'id'> = {
-    type: 'lost',
-    status: 'open',
-    date: new Date().toISOString(),
-    ...itemData,
-  };
-  
-  return addDoc(collectionRef, newItem)
-    .then(() => {
-        revalidatePath('/');
-        revalidatePath('/items');
-        return { success: true };
-    }).catch((serverError) => {
-      const permissionError = new FirestorePermissionError({
-        path: `lost-items`,
-        operation: 'create',
-        requestResourceData: newItem,
-      });
-      errorEmitter.emit('permission-error', permissionError);
-      return { success: false, message: 'Permission denied', code: serverError.code };
-    });
+    const items = await readItems(lostItemsPath);
+    const newItem: Item = {
+        id: new Date().getTime().toString(), // Simple unique ID
+        type: 'lost',
+        status: 'open',
+        date: new Date().toISOString(),
+        ...itemData,
+    };
+    
+    items.push(newItem);
+    await writeItems(lostItemsPath, items);
+
+    revalidatePath('/');
+    revalidatePath('/items');
+    return { success: true };
 }
 
 export async function addFoundItem(itemData: Omit<Item, 'id' | 'type' | 'status' | 'date'>) {
-  const collectionRef = collection(db, "found-items");
-  const newItem: Omit<Item, 'id'> = {
-    type: 'found',
-    status: 'open',
-    date: new Date().toISOString(),
-    ...itemData,
-  };
-  
-  return addDoc(collectionRef, newItem)
-    .then(() => {
-        revalidatePath('/');
-        revalidatePath('/items');
-        return { success: true };
-    }).catch((serverError) => {
-      const permissionError = new FirestorePermissionError({
-        path: `found-items`,
-        operation: 'create',
-        requestResourceData: newItem,
-      });
-      errorEmitter.emit('permission-error', permissionError);
-      return { success: false, message: 'Permission denied', code: serverError.code };
-    });
+    const items = await readItems(foundItemsPath);
+    const newItem: Item = {
+        id: new Date().getTime().toString(), // Simple unique ID
+        type: 'found',
+        status: 'open',
+        date: new Date().toISOString(),
+        ...itemData,
+    };
+    
+    items.push(newItem);
+    await writeItems(foundItemsPath, items);
+
+    revalidatePath('/');
+    revalidatePath('/items');
+    return { success: true };
 }
 
 export async function markItemAsReturned(itemId: string) {
-  const itemRef = doc(db, 'lost-items', itemId);
-  const updateData = { status: 'returned' };
+    const lostItems = await readItems(lostItemsPath);
+    const foundItems = await readItems(foundItemsPath);
 
-  return updateDoc(itemRef, updateData)
-    .then(() => {
-        revalidatePath('/');
-        revalidatePath('/items');
-        return { success: true };
-    }).catch((serverError) => {
-      const permissionError = new FirestorePermissionError({
-        path: itemRef.path,
-        operation: 'update',
-        requestResourceData: updateData,
-      });
-      errorEmitter.emit('permission-error', permissionError);
-      return { success: false, message: 'Permission denied', code: serverError.code };
-    });
+    const itemInLost = lostItems.find(item => item.id === itemId);
+    
+    if (itemInLost) {
+        itemInLost.status = 'returned';
+        await writeItems(lostItemsPath, lostItems);
+    } else {
+        // Although the UI flow makes this unlikely, we check found items too.
+        const itemInFound = foundItems.find(item => item.id === itemId);
+        if (itemInFound) {
+            itemInFound.status = 'returned';
+            await writeItems(foundItemsPath, foundItems);
+        }
+    }
+
+    revalidatePath('/');
+    revalidatePath('/items');
+    return { success: true };
 }
 
+// Mock auth functions
 export async function signUpWithEmail(credentials: UserCredentials) {
-  try {
-    const userCredential = await createUserWithEmailAndPassword(
-      auth,
-      credentials.email,
-      credentials.password
-    );
-
-    const user = userCredential.user;
-    
-    // Update the Firebase Auth user profile
-    await updateProfile(user, { displayName: credentials.fullName });
-
-    // Create a document in the 'users' collection
-    const userData = {
-      uid: user.uid,
-      email: user.email,
-      fullName: credentials.fullName,
-    };
-    
-    await setDoc(doc(db, "users", user.uid), userData)
-      .catch((serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: `users/${user.uid}`,
-          operation: 'create',
-          requestResourceData: userData,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        throw serverError;
-      });
-
-    return { success: true, userId: user.uid };
-  } catch (error: any) {
-    if (error instanceof FirestorePermissionError) {
-      // It's already been emitted, just return failure
-      return { success: false, message: error.message, code: 'permission-denied' };
-    }
-    return { success: false, message: error.message, code: error.code };
-  }
+  console.log('Mock sign up with:', credentials.email);
+  return { success: true, userId: 'mock-user-id' };
 }
 
 export async function signInWithEmail(credentials: UserCredentials) {
-  try {
-    const userCredential = await signInWithEmailAndPassword(
-      auth,
-      credentials.email,
-      credentials.password
-    );
-    return { success: true, userId: userCredential.user.uid };
-  } catch (error: any) {
-    return { success: false, message: error.message, code: error.code };
-  }
+  console.log('Mock sign in with:', credentials.email);
+  return { success: true, userId: 'mock-user-id' };
 }

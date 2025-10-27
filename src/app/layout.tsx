@@ -8,7 +8,6 @@ import { Toaster } from '@/components/ui/toaster';
 import { PageTransition } from '@/components/PageTransition';
 import { AuthProvider } from '@/components/AuthProvider';
 import { usePathname } from 'next/navigation';
-import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 
 export default function RootLayout({
@@ -17,8 +16,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
-  const noHeaderPaths = ['/', '/login', '/signup'];
-  const showHeader = !noHeaderPaths.includes(pathname);
+  // Since auth is removed, we show the header on all pages except the root splash page
+  const showHeader = pathname !== '/';
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -39,7 +38,6 @@ export default function RootLayout({
             </PageTransition>
           </main>
           <Toaster />
-          <FirebaseErrorListener />
         </AuthProvider>
       </body>
     </html>

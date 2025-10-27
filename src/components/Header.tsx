@@ -2,15 +2,13 @@
 'use client';
 
 import Link from 'next/link';
-import { Search, Menu, LogOut, User } from 'lucide-react';
+import { Search, Menu, User } from 'lucide-react';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import React from 'react';
 import { useAuth } from './AuthProvider';
-import { auth } from '@/lib/firebase';
-import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import {
@@ -49,27 +47,7 @@ function NavLink({ href, children, onClick }: { href: string; children: React.Re
 export default function Header() {
   const [isOpen, setIsOpen] = React.useState(false);
   const { user } = useAuth();
-  const { toast } = useToast();
-  const router = useRouter();
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      toast({
-        title: 'Logged Out',
-        description: 'You have been successfully logged out.',
-      });
-      router.push('/');
-    } catch (error) {
-      toast({
-        title: 'Logout Failed',
-        description: 'Something went wrong. Please try again.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-
+  
   return (
     <header className="sticky top-0 z-50 w-full bg-primary text-primary-foreground">
       <div className="container flex h-20 items-center justify-between">
@@ -109,11 +87,6 @@ export default function Header() {
                 <p className="font-bold">{user?.fullName || 'User'}</p>
                 <p className="text-xs text-muted-foreground font-normal">{user?.email}</p>
               </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="mr-2" />
-                <span>Sign out</span>
-              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -144,8 +117,6 @@ export default function Header() {
                                 {link.label}
                             </NavLink>
                         ))}
-                        <hr className="border-blue-300 my-2" />
-                        <button onClick={() => { handleLogout(); setIsOpen(false);}} className="text-left text-base font-medium text-blue-200 hover:text-white">Logout</button>
                     </div>
                 </div>
               </SheetContent>

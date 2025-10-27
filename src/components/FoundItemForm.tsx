@@ -26,7 +26,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Checkbox } from './ui/checkbox';
 import Image from 'next/image';
-import { useAuth, type AuthUser } from './AuthProvider';
+import { useAuth } from './AuthProvider';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Item name must be at least 2 characters.' }),
@@ -74,11 +74,10 @@ export function FoundItemForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user) {
       toast({
-        title: 'Authentication Required',
-        description: 'You must be logged in to report a found item.',
+        title: 'Authentication Error',
+        description: 'Mock user not found. Please refresh.',
         variant: 'destructive',
       });
-      router.push('/login');
       return;
     }
 
@@ -99,7 +98,7 @@ export function FoundItemForm() {
         form.reset();
         router.push('/items');
       } else {
-        throw new Error(result.message || 'Failed to add item');
+        throw new Error('Failed to add item');
       }
     } catch (error: any) {
        toast({
