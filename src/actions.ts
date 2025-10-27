@@ -5,8 +5,12 @@ import type { Item, UserCredentials } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { initializeFirebase } from '@/lib/firebase';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
-// Define paths to the JSON files
+initializeFirebase();
+
 const lostItemsPath = path.join(process.cwd(), 'data/lost-items.json');
 const foundItemsPath = path.join(process.cwd(), 'data/found-items.json');
 
@@ -15,7 +19,6 @@ async function readItems(filePath: string): Promise<Item[]> {
         const fileContent = await fs.readFile(filePath, 'utf-8');
         return JSON.parse(fileContent);
     } catch (error) {
-        // If the file doesn't exist or is empty, return an empty array
         return [];
     }
 }
@@ -38,7 +41,7 @@ export async function getFoundItems(): Promise<Item[]> {
 export async function addLostItem(itemData: Omit<Item, 'id' | 'type' | 'status' | 'date'>) {
     const items = await readItems(lostItemsPath);
     const newItem: Item = {
-        id: new Date().getTime().toString(), // Simple unique ID
+        id: new Date().getTime().toString(),
         type: 'lost',
         status: 'open',
         date: new Date().toISOString(),
@@ -56,7 +59,7 @@ export async function addLostItem(itemData: Omit<Item, 'id' | 'type' | 'status' 
 export async function addFoundItem(itemData: Omit<Item, 'id' | 'type' | 'status' | 'date'>) {
     const items = await readItems(foundItemsPath);
     const newItem: Item = {
-        id: new Date().getTime().toString(), // Simple unique ID
+        id: new Date().getTime().toString(),
         type: 'found',
         status: 'open',
         date: new Date().toISOString(),
@@ -81,7 +84,6 @@ export async function markItemAsReturned(itemId: string) {
         itemInLost.status = 'returned';
         await writeItems(lostItemsPath, lostItems);
     } else {
-        // Although the UI flow makes this unlikely, we check found items too.
         const itemInFound = foundItems.find(item => item.id === itemId);
         if (itemInFound) {
             itemInFound.status = 'returned';
@@ -94,13 +96,31 @@ export async function markItemAsReturned(itemId: string) {
     return { success: true };
 }
 
-// Mock auth functions
+
 export async function signUpWithEmail(credentials: UserCredentials) {
-  console.log('Mock sign up with:', credentials.email);
-  return { success: true, userId: 'mock-user-id' };
+  try {
+    const auth = getAuth();
+    const userCredential = await createUserWithEmailAndPassword(auth, credentials.email, credentials.password);
+    const user = userCredential.user;
+
+    const db = getFirestore();
+    await setDoc(doc(db, 'users', user.uid), {
+      fullName: credentials.fullName,
+      email: user.email,
+    });
+
+    return { success: true, userId: user.uid };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
 }
 
-export async function signInWithEmail(credentials: UserCredentials) {
-  console.log('Mock sign in with:', credentials.email);
-  return { success: true, userId: 'mock-user-id' };
+export async function signInWithEmail(credentials: Omit<UserCredentials, 'fullName'>) {
+  try {
+    const auth = getAuth();
+    const userCredential = await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
+    return { success: true, userId: userCredential.user.uid };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
 }

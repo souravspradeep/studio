@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Search, Menu, User } from 'lucide-react';
+import { Search, Menu, User, LogOut } from 'lucide-react';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 import { usePathname, useRouter } from 'next/navigation';
@@ -19,6 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
+import { getAuth, signOut } from 'firebase/auth';
 
 const navLinks = [
   { href: '/home', label: 'Home' },
@@ -47,6 +48,25 @@ function NavLink({ href, children, onClick }: { href: string; children: React.Re
 export default function Header() {
   const [isOpen, setIsOpen] = React.useState(false);
   const { user } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(getAuth());
+      toast({
+        title: 'Signed Out',
+        description: 'You have been successfully signed out.',
+      });
+      router.push('/login');
+    } catch (error) {
+      toast({
+        title: 'Error Signing Out',
+        description: 'There was an issue signing out. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
   
   return (
     <header className="sticky top-0 z-50 w-full bg-primary text-primary-foreground">
@@ -87,6 +107,11 @@ export default function Header() {
                 <p className="font-bold">{user?.fullName || 'User'}</p>
                 <p className="text-xs text-muted-foreground font-normal">{user?.email}</p>
               </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Sign out</span>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -117,6 +142,12 @@ export default function Header() {
                                 {link.label}
                             </NavLink>
                         ))}
+                    </div>
+
+                    <div className="mt-8">
+                      <Button onClick={handleSignOut} className="w-full">
+                        Sign Out
+                      </Button>
                     </div>
                 </div>
               </SheetContent>

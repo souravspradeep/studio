@@ -16,8 +16,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
-  // Since auth is removed, we show the header on all pages except the root splash page
-  const showHeader = pathname !== '/';
+  const noHeaderPaths = ['/login', '/signup', '/'];
+
+  const showHeader = !noHeaderPaths.includes(pathname);
 
   return (
     <html lang="en" suppressHydrationWarning>
