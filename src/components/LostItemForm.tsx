@@ -69,11 +69,19 @@ export function LostItemForm() {
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    // With a mock user, this check is simpler but good practice
+    if (isAuthLoading) {
+        toast({
+            title: 'Please wait',
+            description: 'Authentication is in progress.',
+            variant: 'destructive',
+        });
+        return;
+    }
+
     if (!user) {
       toast({
         title: 'Authentication Error',
-        description: 'Mock user not found. Please refresh.',
+        description: 'You must be logged in to report a lost item.',
         variant: 'destructive',
       });
       return;

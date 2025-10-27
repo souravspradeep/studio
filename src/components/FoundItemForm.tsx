@@ -72,10 +72,18 @@ export function FoundItemForm() {
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (isAuthLoading) {
+        toast({
+            title: 'Please wait',
+            description: 'Authentication is in progress.',
+            variant: 'destructive',
+        });
+        return;
+    }
     if (!user) {
       toast({
         title: 'Authentication Error',
-        description: 'Mock user not found. Please refresh.',
+        description: 'You must be logged in to report a found item.',
         variant: 'destructive',
       });
       return;

@@ -52,7 +52,7 @@ export function ItemCard({ item }: { item: Item }) {
       } else {
         toast({
           title: 'Error',
-          description: result.message || 'Failed to update item status.',
+          description: 'Failed to update item status.',
           variant: 'destructive',
         });
       }
