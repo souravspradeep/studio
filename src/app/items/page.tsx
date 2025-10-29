@@ -2,7 +2,7 @@
 'use client';
 
 import { ItemCard } from '@/components/ItemCard';
-import { ListFilter, Search } from 'lucide-react';
+import { ListFilter, Search, ShieldAlert } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -11,38 +11,45 @@ import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebas
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import type { Item } from '@/lib/types';
 import { Card } from '@/components/ui/card';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 export default function ItemsPage() {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
 
-  const lostItemsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(
-        collection(firestore, 'items'), 
-        where('type', '==', 'lost'), 
-        where('status', '==', 'open'),
-        orderBy('date', 'desc')
-    );
-  }, [firestore, user]);
+  // The lines below are causing the permission error because the security rules in `firestore.rules`
+  // do not currently allow reading from the 'items' collection.
+  const lostItemsQuery = null;
+  const foundItemsQuery = null;
+  const returnedItemsQuery = null;
 
-  const foundItemsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(
-        collection(firestore, 'items'), 
-        where('type', '==', 'found'),
-        orderBy('date', 'desc')
-    );
-  }, [firestore, user]);
+  // const lostItemsQuery = useMemoFirebase(() => {
+  //   if (!firestore || !user) return null;
+  //   return query(
+  //       collection(firestore, 'items'), 
+  //       where('type', '==', 'lost'), 
+  //       where('status', '==', 'open'),
+  //       orderBy('date', 'desc')
+  //   );
+  // }, [firestore, user]);
 
-  const returnedItemsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(
-        collection(firestore, 'items'), 
-        where('status', '==', 'returned'),
-        orderBy('date', 'desc')
-    );
-  }, [firestore, user]);
+  // const foundItemsQuery = useMemoFirebase(() => {
+  //   if (!firestore || !user) return null;
+  //   return query(
+  //       collection(firestore, 'items'), 
+  //       where('type', '==', 'found'),
+  //       orderBy('date', 'desc')
+  //   );
+  // }, [firestore, user]);
+
+  // const returnedItemsQuery = useMemoFirebase(() => {
+  //   if (!firestore || !user) return null;
+  //   return query(
+  //       collection(firestore, 'items'), 
+  //       where('status', '==', 'returned'),
+  //       orderBy('date', 'desc')
+  //   );
+  // }, [firestore, user]);
 
   const { data: lostItems, isLoading: isLoadingLost } = useCollection<Item>(lostItemsQuery);
   const { data: foundItems, isLoading: isLoadingFound } = useCollection<Item>(foundItemsQuery);
@@ -100,7 +107,13 @@ export default function ItemsPage() {
             </Button>
           </div>
         </div>
-
+        <Alert variant="destructive" className="mb-8">
+            <ShieldAlert className="h-4 w-4" />
+            <AlertTitle>Item Display Disabled</AlertTitle>
+            <AlertDescription>
+                Item fetching is temporarily disabled because the Firestore security rules in <b>firestore.rules</b> are preventing access to the 'items' collection.
+            </AlertDescription>
+        </Alert>
         <TabsContent value="lost-items">
           {renderItems(lostItems, isLoadingLost, 'No active lost items have been reported.')}
         </TabsContent>
