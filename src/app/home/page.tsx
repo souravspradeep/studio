@@ -16,17 +16,14 @@ export default function Home() {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
 
-  // The line below is causing the permission error because the security rules in `firestore.rules`
-  // do not currently allow reading from the 'items' collection.
-  const lostItemsQuery = null;
-  // const lostItemsQuery = useMemoFirebase(() => {
-  //   if (!firestore || !user) return null;
-  //   return query(
-  //       collection(firestore, 'items'), 
-  //       where('type', '==', 'lost'), 
-  //       orderBy('date', 'desc')
-  //   );
-  // }, [firestore, user]);
+  const lostItemsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(
+        collection(firestore, 'items'), 
+        where('type', '==', 'lost'), 
+        orderBy('date', 'desc')
+    );
+  }, [firestore, user]);
 
   const { data: allLostItems, isLoading: isLoadingLostItems } = useCollection<Item>(lostItemsQuery);
 
@@ -93,13 +90,6 @@ export default function Home() {
       
       <div className="w-full max-w-5xl">
         <h2 className="text-3xl font-bold mb-8 text-center md:text-left">Recently Lost Items</h2>
-        <Alert variant="destructive" className="mb-8">
-            <ShieldAlert className="h-4 w-4" />
-            <AlertTitle>Item Display Disabled</AlertTitle>
-            <AlertDescription>
-              Item fetching is temporarily disabled because the Firestore security rules in <b>firestore.rules</b> are preventing access to the 'items' collection.
-            </AlertDescription>
-        </Alert>
         {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[...Array(4)].map((_, i) => <Card key={i} className="h-[250px] animate-pulse bg-muted"></Card>)}
@@ -111,6 +101,17 @@ export default function Home() {
             ))}
           </div>
         ) : (
+          !isUserLoading && !allLostItems && (
+            <Alert variant="destructive" className="mb-8">
+                <ShieldAlert className="h-4 w-4" />
+                <AlertTitle>Could not fetch items</AlertTitle>
+                <AlertDescription>
+                  There was a problem fetching items. This is likely due to Firestore security rules.
+                </AlertDescription>
+            </Alert>
+          )
+        )}
+         { !isLoading && recentLostItems.length === 0 && (
           <p className="text-center text-muted-foreground py-16">No lost items have been reported yet.</p>
         )}
       </div>

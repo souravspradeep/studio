@@ -17,45 +17,39 @@ export default function ItemsPage() {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
 
-  // The lines below are causing the permission error because the security rules in `firestore.rules`
-  // do not currently allow reading from the 'items' collection.
-  const lostItemsQuery = null;
-  const foundItemsQuery = null;
-  const returnedItemsQuery = null;
+  const lostItemsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(
+        collection(firestore, 'items'), 
+        where('type', '==', 'lost'), 
+        where('status', '==', 'open'),
+        orderBy('date', 'desc')
+    );
+  }, [firestore, user]);
 
-  // const lostItemsQuery = useMemoFirebase(() => {
-  //   if (!firestore || !user) return null;
-  //   return query(
-  //       collection(firestore, 'items'), 
-  //       where('type', '==', 'lost'), 
-  //       where('status', '==', 'open'),
-  //       orderBy('date', 'desc')
-  //   );
-  // }, [firestore, user]);
+  const foundItemsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(
+        collection(firestore, 'items'), 
+        where('type', '==', 'found'),
+        orderBy('date', 'desc')
+    );
+  }, [firestore, user]);
 
-  // const foundItemsQuery = useMemoFirebase(() => {
-  //   if (!firestore || !user) return null;
-  //   return query(
-  //       collection(firestore, 'items'), 
-  //       where('type', '==', 'found'),
-  //       orderBy('date', 'desc')
-  //   );
-  // }, [firestore, user]);
+  const returnedItemsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(
+        collection(firestore, 'items'), 
+        where('status', '==', 'returned'),
+        orderBy('date', 'desc')
+    );
+  }, [firestore, user]);
 
-  // const returnedItemsQuery = useMemoFirebase(() => {
-  //   if (!firestore || !user) return null;
-  //   return query(
-  //       collection(firestore, 'items'), 
-  //       where('status', '==', 'returned'),
-  //       orderBy('date', 'desc')
-  //   );
-  // }, [firestore, user]);
+  const { data: lostItems, isLoading: isLoadingLost, error: lostError } = useCollection<Item>(lostItemsQuery);
+  const { data: foundItems, isLoading: isLoadingFound, error: foundError } = useCollection<Item>(foundItemsQuery);
+  const { data: returnedItems, isLoading: isLoadingReturned, error: returnedError } = useCollection<Item>(returnedItemsQuery);
 
-  const { data: lostItems, isLoading: isLoadingLost } = useCollection<Item>(lostItemsQuery);
-  const { data: foundItems, isLoading: isLoadingFound } = useCollection<Item>(foundItemsQuery);
-  const { data: returnedItems, isLoading: isLoadingReturned } = useCollection<Item>(returnedItemsQuery);
-
-  const renderItems = (items: Item[] | null, isLoadingData: boolean, emptyMessage: string) => {
+  const renderItems = (items: Item[] | null, isLoadingData: boolean, error: Error | null, emptyMessage: string) => {
     const isLoading = isUserLoading || isLoadingData;
     if (isLoading) {
       return (
@@ -63,6 +57,17 @@ export default function ItemsPage() {
           {[...Array(8)].map((_, i) => <Card key={i} className="h-[250px] animate-pulse bg-muted"></Card>)}
         </div>
       );
+    }
+    if (error) {
+      return (
+        <Alert variant="destructive" className="mb-8">
+            <ShieldAlert className="h-4 w-4" />
+            <AlertTitle>Could not fetch items</AlertTitle>
+            <AlertDescription>
+                There was a problem fetching items. This is likely due to Firestore security rules.
+            </AlertDescription>
+        </Alert>
+      )
     }
     if (!items || items.length === 0) {
       return <p className="text-center text-muted-foreground py-16">{emptyMessage}</p>;
@@ -107,21 +112,14 @@ export default function ItemsPage() {
             </Button>
           </div>
         </div>
-        <Alert variant="destructive" className="mb-8">
-            <ShieldAlert className="h-4 w-4" />
-            <AlertTitle>Item Display Disabled</AlertTitle>
-            <AlertDescription>
-                Item fetching is temporarily disabled because the Firestore security rules in <b>firestore.rules</b> are preventing access to the 'items' collection.
-            </AlertDescription>
-        </Alert>
         <TabsContent value="lost-items">
-          {renderItems(lostItems, isLoadingLost, 'No active lost items have been reported.')}
+          {renderItems(lostItems, isLoadingLost, lostError, 'No active lost items have been reported.')}
         </TabsContent>
         <TabsContent value="found-items">
-          {renderItems(foundItems, isLoadingFound, 'No found items have been reported yet.')}
+          {renderItems(foundItems, isLoadingFound, foundError, 'No found items have been reported yet.')}
         </TabsContent>
         <TabsContent value="returned-items">
-          {renderItems(returnedItems, isLoadingReturned, 'No items have been marked as returned yet.')}
+          {renderItems(returnedItems, isLoadingReturned, returnedError, 'No items have been marked as returned yet.')}
         </TabsContent>
       </Tabs>
     </div>
