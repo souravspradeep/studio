@@ -1,140 +1,127 @@
 /**
- * @fileOverview This ruleset enforces a user-ownership model for user profiles and their lost item posts,
- *   allows public read/write access to found item posts and authority submissions,
- *   and restricts access to authority contact information.
+ * @fileoverview Firestore Security Rules for Campus Compass.
  *
- * @dataStructure
- *   - /users/{userId}: Stores user profile information, accessible only to the user themselves.
- *   - /users/{userId}/lostItemPosts/{lostItemPostId}: Stores lost item posts created by a specific user, accessible only to that user.
- *   - /foundItemPosts/{foundItemPostId}: Stores found item posts, publicly accessible.
- *   - /authoritySubmissions/{authoritySubmissionId}: Stores submissions to the campus authority, publicly accessible.
- *   - /authorityContacts/{authorityContactId}: Stores contact information for campus authorities, write-protected.
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for user profiles and lost item posts,
+ * and allows public read access to found item posts and authority submissions.
+ * Administrative access is assumed to be handled outside of Firestore.
  *
- * @keySecurityDecisions
- *   - Users can only read and write their own profile data and lost item posts.
- *   - Found item posts and authority submissions are publicly accessible.
- *   - Authority contact information is read and write-protected, simulating admin-only access for prototyping.
- *   - User listing is disabled for privacy.
+ * Data Structure:
+ * - /users/{userId}: Stores user profile information; only the user can read/write.
+ * - /users/{userId}/lostItemPosts/{lostItemPostId}: Stores lost item posts; only the user can read/write.
+ * - /foundItemPosts/{foundItemPostId}: Stores found item posts; publicly readable.
+ * - /authoritySubmissions/{authoritySubmissionId}: Stores submissions to authorities; publicly readable.
+ * - /authorityContacts/{authorityContactId}: Stores authority contact information.
+ *
+ * Key Security Decisions:
+ * - Users can only read and write their own user documents and lost item posts.
+ * - Found item posts and authority submissions are publicly readable to facilitate discovery and reporting.
+ * - The ruleset trusts client-provided data and does not perform schema validation beyond ownership checks.
+ * - Listing all users or authority contacts is disallowed by default for privacy and security.
+ *
+ * Denormalization for Authorization:
+ * The `lostItemPosts` subcollection under `/users/{userId}` automatically links a post to its owner,
+ * eliminating the need for `get()` calls to determine ownership.
+ *
+ * Structural Segregation:
+ * `lostItemPosts` are stored as a user subcollection, while `foundItemPosts` are stored in a top-level collection.
+ * This avoids the need for a boolean flag (e.g., `isLost`) and allows for simpler, more performant rules.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Manages user profile information. Only the user can read/write their own data.
+     * @description Controls access to user profile information.
      * @path /users/{userId}
-     * @allow (create) - User with UID 'user_abc' can create their profile at /users/user_abc.
-     * @allow (get) - User with UID 'user_abc' can read their profile at /users/user_abc.
-     * @allow (update) - User with UID 'user_abc' can update their profile at /users/user_abc.
-     * @allow (delete) - User with UID 'user_abc' can delete their profile at /users/user_abc.
-     * @deny (create) - User with UID 'user_xyz' cannot create a profile at /users/user_abc.
-     * @deny (get) - User with UID 'user_xyz' cannot read the profile at /users/user_abc.
-     * @deny (update) - User with UID 'user_xyz' cannot update the profile at /users/user_abc.
-     * @deny (delete) - User with UID 'user_xyz' cannot delete the profile at /users/user_abc.
-     * @principle Enforces document ownership for writes.
+     * @allow (create) User 'vW9DPfBghQgkhuIXRq43YtljtHk1' can create their own profile at /users/vW9DPfBghQgkhuIXRq43YtljtHk1.
+     * @allow (get, update, delete) User 'vW9DPfBghQgkhuIXRq43YtljtHk1' can read/update/delete their own profile at /users/vW9DPfBghQgkhuIXRq43YtljtHk1.
+     * @deny (create) User 'someOtherUserId' cannot create a profile for 'vW9DPfBghQgkhuIXRq43YtljtHk1' at /users/vW9DPfBghQgkhuIXRq43YtljtHk1.
+     * @deny (get, update, delete) User 'someOtherUserId' cannot read/update/delete the profile of 'vW9DPfBghQgkhuIXRq43YtljtHk1' at /users/vW9DPfBghQgkhuIXRq43YtljtHk1.
+     * @principle Enforces document ownership for writes; restricts access to a user's own data tree.
      */
     match /users/{userId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
       function isOwner(userId) {
-        return request.auth.uid == userId;
+        return request.auth != null && request.auth.uid == userId;
       }
-
-      allow get: if isSignedIn() && isOwner(userId);
+      allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isOwner(userId);
-      allow delete: if isSignedIn() && isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) && resource != null;
+      allow delete: if isOwner(userId) && resource != null;
     }
 
     /**
-     * @description Stores lost item posts created by a specific user. Only the user can manage their own posts.
+     * @description Controls access to lost item posts created by a specific user.
      * @path /users/{userId}/lostItemPosts/{lostItemPostId}
-     * @allow (create) - User with UID 'user_abc' can create a lost item post under /users/user_abc/lostItemPosts/post1.
-     * @allow (get) - User with UID 'user_abc' can read a lost item post under /users/user_abc/lostItemPosts/post1.
-     * @allow (update) - User with UID 'user_abc' can update a lost item post under /users/user_abc/lostItemPosts/post1.
-     * @allow (delete) - User with UID 'user_abc' can delete a lost item post under /users/user_abc/lostItemPosts/post1.
-     * @deny (create) - User with UID 'user_xyz' cannot create a lost item post under /users/user_abc/lostItemPosts/post1.
-     * @deny (get) - User with UID 'user_xyz' cannot read a lost item post under /users/user_abc/lostItemPosts/post1.
-     * @deny (update) - User with UID 'user_xyz' cannot update a lost item post under /users/user_abc/lostItemPosts/post1.
-     * @deny (delete) - User with UID 'user_xyz' cannot delete a lost item post under /users/user_abc/lostItemPosts/post1.
-     * @principle Enforces document ownership for writes.
+     * @allow (create) User 'vW9DPfBghQgkhuIXRq43YtljtHk1' can create a lost item post under their own profile.
+     * @allow (get, update, delete) User 'vW9DPfBghQgkhuIXRq43YtljtHk1' can read/update/delete their own lost item post.
+     * @deny (create) User 'someOtherUserId' cannot create a lost item post for 'vW9DPfBghQgkhuIXRq43YtljtHk1'.
+     * @deny (get, update, delete) User 'someOtherUserId' cannot read/update/delete the lost item post of 'vW9DPfBghQgkhuIXRq43YtljtHk1'.
+     * @principle Enforces document ownership for writes; restricts access to a user's own data tree.
      */
     match /users/{userId}/lostItemPosts/{lostItemPostId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
       function isOwner(userId) {
-        return request.auth.uid == userId;
+        return request.auth != null && request.auth.uid == userId;
       }
-
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isOwner(userId);
-      allow delete: if isSignedIn() && isOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) && resource != null;
+      allow delete: if isOwner(userId) && resource != null;
     }
 
     /**
-     * @description Stores found item posts. Anyone can create, read, update and delete.
+     * @description Controls access to found item posts.
      * @path /foundItemPosts/{foundItemPostId}
-     * @allow (create) - Any authenticated user can create a found item post.
-     * @allow (get) - Any authenticated user can read a found item post.
-     * @allow (update) - Any authenticated user can update a found item post.
-     * @allow (delete) - Any authenticated user can delete a found item post.
-     * @principle Allows public read/write access for prototyping.
+     * @allow (get, list) Any user can read found item posts.
+     * @allow (create) Any authenticated user can create found item posts.
+     * @deny (update, delete) Only the owner can update/delete found item posts.
+     * @principle Allows public read access; enforces document ownership for writes.
      */
     match /foundItemPosts/{foundItemPostId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
       allow get: if true;
       allow list: if true;
       allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
     /**
-     * @description Stores submissions to the campus authority. Anyone can create, read, update and delete.
+     * @description Controls access to authority submissions.
      * @path /authoritySubmissions/{authoritySubmissionId}
-     * @allow (create) - Any authenticated user can create an authority submission.
-     * @allow (get) - Any authenticated user can read an authority submission.
-     * @allow (update) - Any authenticated user can update an authority submission.
-     * @allow (delete) - Any authenticated user can delete an authority submission.
-     * @principle Allows public read/write access for prototyping.
+     * @allow (get, list) Any user can read authority submissions.
+     * @allow (create) Any authenticated user can create authority submissions.
+     * @deny (update, delete) Only the owner can update/delete authority submissions.
+     * @principle Allows public read access; enforces document ownership for writes.
      */
     match /authoritySubmissions/{authoritySubmissionId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
       allow get: if true;
       allow list: if true;
       allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
     /**
-     * @description Stores contact information for campus authorities. Read-protected and write-protected to simulate admin-only access.
+     * @description Controls access to authority contacts.
      * @path /authorityContacts/{authorityContactId}
-     * @deny (create) - No one can create authority contacts.
-     * @deny (get) - No one can read authority contacts.
-     * @deny (update) - No one can update authority contacts.
-     * @deny (delete) - No one can delete authority contacts.
-     * @principle Restricts access to simulate admin-only access.
+     * @allow (get) Any user can read authority contacts.
+     * @deny (list) Listing all authority contacts is prohibited.
+     * @deny (create, update, delete) Authority contact management is assumed to be handled by admins (outside of Firestore rules).
+     * @principle Restricts access to a user's own data tree; administrator management.
      */
     match /authorityContacts/{authorityContactId} {
-      allow get: if false;
+      allow get: if true;
       allow list: if false;
       allow create: if false;
       allow update: if false;
       allow delete: if false;
     }
+
+  }
+
+  function isSignedIn() {
+    return request.auth != null;
   }
 }
