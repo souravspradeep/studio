@@ -68,7 +68,7 @@ export function ItemCard({ item }: { item: Item }) {
   };
   
   const isOwner = user && user.uid === item.ownerId;
-  const imageUrl = item.imageUrl;
+  const imageUrl = item.imageDataUri || item.imageUrl;
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -104,7 +104,7 @@ export function ItemCard({ item }: { item: Item }) {
           <CardContent className="p-4 flex flex-col flex-grow">
             {!imageUrl && (
               <Badge
-                className="absolute top-2 right-2"
+                className="self-end"
                 variant={
                   item.status === 'returned'
                     ? 'default'
