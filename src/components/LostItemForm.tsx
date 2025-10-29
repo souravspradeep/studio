@@ -24,8 +24,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { addLostItem } from '@/actions';
-import { useAuth } from './AuthProvider';
+import { useUser, useFirestore } from '@/firebase';
+import { addDocumentNonBlocking } from '@/lib/firebase-actions';
+import { collection, serverTimestamp } from 'firebase/firestore';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Item name must be at least 2 characters.' }),
@@ -38,7 +39,8 @@ const formSchema = z.object({
 
 export function LostItemForm() {
   const { toast } = useToast();
-  const { user, isLoading: isAuthLoading } = useAuth();
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -69,7 +71,7 @@ export function LostItemForm() {
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (isAuthLoading) {
+    if (isUserLoading) {
         toast({
             title: 'Please wait',
             description: 'Authentication is in progress.',
@@ -84,28 +86,31 @@ export function LostItemForm() {
         description: 'You must be logged in to report a lost item.',
         variant: 'destructive',
       });
+      router.push('/login');
       return;
     }
 
+    if(!firestore) return;
+
     setIsSubmitting(true);
     try {
-      const result = await addLostItem({
+      const itemsCollection = collection(firestore, 'items');
+      await addDocumentNonBlocking(itemsCollection, {
         ...values,
+        type: 'lost',
+        status: 'open',
+        date: serverTimestamp(),
         ownerId: user.uid,
-        userName: user.fullName || user.email || 'Anonymous',
-        userContact: user.email || '',
+        userName: user.displayName || user.email,
+        userContact: user.email,
       });
 
-      if (result.success) {
-        toast({
-          title: 'Report Filed!',
-          description: 'Your lost item report has been created. We hope you find it soon!',
-        });
-        form.reset();
-        router.push('/home');
-      } else {
-        throw new Error('Failed to add item');
-      }
+      toast({
+        title: 'Report Filed!',
+        description: 'Your lost item report has been created. We hope you find it soon!',
+      });
+      form.reset();
+      router.push('/home');
     } catch (error: any) {
        toast({
         title: 'Submission Failed',
@@ -255,7 +260,7 @@ export function LostItemForm() {
             />
             <div className="flex gap-4 pt-4">
                 <Button type="button" variant="outline" className="w-full" onClick={() => form.reset()} disabled={isSubmitting}>Cancel</Button>
-                <Button type="submit" className="w-full bg-accent hover:bg-accent/90" disabled={isSubmitting || isAuthLoading}>
+                <Button type="submit" className="w-full bg-accent hover:bg-accent/90" disabled={isSubmitting || isUserLoading}>
                   {isSubmitting ? 'Submitting...' : 'Report Lost Item'}
                 </Button>
             </div>

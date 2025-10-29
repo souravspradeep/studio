@@ -4,20 +4,20 @@
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/components/AuthProvider';
+import { useUser } from '@/firebase';
 import { useEffect } from 'react';
 
 export default function WelcomePage() {
-    const { user, isLoading } = useAuth();
+    const { user, isUserLoading } = useUser();
     const router = useRouter();
 
     useEffect(() => {
-        if (!isLoading && user) {
+        if (!isUserLoading && user) {
             router.replace('/home');
         }
-    }, [user, isLoading, router]);
+    }, [user, isUserLoading, router]);
 
-    if (isLoading || user) {
+    if (isUserLoading || user) {
         return (
             <div className="flex h-screen w-screen items-center justify-center">
                 <div className="h-16 w-16 animate-spin rounded-full border-4 border-dashed border-primary"></div>

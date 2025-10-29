@@ -1,22 +1,36 @@
 
+'use client';
+
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { ArrowRight, CheckCircle, FileText, FileQuestion, FilePlus } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { getLostItems } from '@/actions';
+import { useCollection, useFirestore } from '@/firebase';
 import { ItemCard } from '@/components/ItemCard';
+import { collection, query, where, orderBy, limit } from 'firebase/firestore';
+import type { Item } from '@/lib/types';
+import { useMemo } from 'react';
 
 
-export default async function Home() {
-  const allLostItems = await getLostItems();
-  const activeLostItems = allLostItems.filter(item => item.status === 'open');
-  const itemsReturned = allLostItems.filter(item => item.status === 'returned').length;
+export default function Home() {
+  const firestore = useFirestore();
+
+  const lostItemsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(
+        collection(firestore, 'items'), 
+        where('type', '==', 'lost'), 
+        orderBy('date', 'desc')
+    );
+  }, [firestore]);
+
+  const { data: allLostItems, isLoading: isLoadingLostItems } = useCollection<Item>(lostItemsQuery as any);
+
+  const activeLostItems = allLostItems?.filter(item => item.status === 'open') || [];
+  const itemsReturned = allLostItems?.filter(item => item.status === 'returned').length || 0;
   const activePosts = activeLostItems.length;
   
-  const recentLostItems = [...activeLostItems]
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 4);
+  const recentLostItems = activeLostItems.slice(0, 4);
 
   return (
     <div className="flex flex-col items-center justify-center p-4 md:p-8">
@@ -51,7 +65,7 @@ export default async function Home() {
           <CardContent className="flex items-center justify-between p-6">
             <div>
               <p className="text-muted-foreground">Active Posts</p>
-              <p className="text-4xl font-bold">{activePosts}</p>
+              <p className="text-4xl font-bold">{isLoadingLostItems ? '...' : activePosts}</p>
             </div>
             <div className="bg-blue-100 p-4 rounded-full">
               <FileText className="text-primary" size={28}/>
@@ -62,7 +76,7 @@ export default async function Home() {
           <CardContent className="flex items-center justify-between p-6">
             <div>
               <p className="text-muted-foreground">Items Returned</p>
-              <p className="text-4xl font-bold">{itemsReturned}</p>
+              <p className="text-4xl font-bold">{isLoadingLostItems ? '...' : itemsReturned}</p>
             </div>
             <div className="bg-green-100 p-4 rounded-full">
               <CheckCircle className="text-green-600" size={28}/>
@@ -73,7 +87,11 @@ export default async function Home() {
       
       <div className="w-full max-w-5xl">
         <h2 className="text-3xl font-bold mb-8 text-center md:text-left">Recently Lost Items</h2>
-        {recentLostItems.length > 0 ? (
+        {isLoadingLostItems ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[...Array(4)].map((_, i) => <Card key={i} className="h-[250px] animate-pulse bg-muted"></Card>)}
+            </div>
+        ) : recentLostItems.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {recentLostItems.map((item) => (
               <ItemCard key={item.id} item={item} />

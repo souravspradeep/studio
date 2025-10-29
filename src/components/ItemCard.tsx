@@ -8,7 +8,6 @@ import { Clock, MapPin, CheckSquare, Info, Award, Mail, Phone, User } from 'luci
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -28,34 +27,30 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { markItemAsReturned } from '@/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
-import { useAuth } from './AuthProvider';
+import { useUser, useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { updateDocumentNonBlocking } from '@/lib/firebase-actions';
 
 export function ItemCard({ item }: { item: Item }) {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user } = useUser();
+  const firestore = useFirestore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handleMarkAsReturned = async () => {
+    if (!firestore) return;
     setIsSubmitting(true);
     try {
-      const result = await markItemAsReturned(item.id);
-      if (result.success) {
-        toast({
-          title: 'Item Marked as Returned',
-          description: 'Thank you for updating the status.',
-        });
-        setIsDialogOpen(false); // Close the main dialog
-      } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to update item status.',
-          variant: 'destructive',
-        });
-      }
+      const itemRef = doc(firestore, 'items', item.id);
+      await updateDocumentNonBlocking(itemRef, { status: 'returned' });
+      toast({
+        title: 'Item Marked as Returned',
+        description: 'Thank you for updating the status.',
+      });
+      setIsDialogOpen(false); // Close the main dialog
     } catch (error) {
       toast({
         title: 'Error',
@@ -69,6 +64,11 @@ export function ItemCard({ item }: { item: Item }) {
   
   const isOwner = user && user.uid === item.ownerId;
   const imageUrl = item.imageDataUri || item.imageUrl;
+  
+  // Convert Firestore Timestamp to Date if necessary
+  const date = item.date instanceof Date 
+    ? item.date 
+    : (item.date as any)?.toDate ? (item.date as any).toDate() : new Date();
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -128,7 +128,7 @@ export function ItemCard({ item }: { item: Item }) {
               <Clock className="h-3 w-3 mr-1.5 flex-shrink-0" />
               <span>
                 {item.type === 'lost' ? 'Lost on' : 'Found on'}{' '}
-                {new Date(item.date).toLocaleDateString()}
+                {date.toLocaleDateString()}
               </span>
             </div>
           </CardContent>

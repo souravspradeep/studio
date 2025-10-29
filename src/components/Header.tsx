@@ -7,8 +7,8 @@ import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import React from 'react';
-import { useAuth } from './AuthProvider';
+import React, { useEffect, useState } from 'react';
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import {
@@ -19,7 +19,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
-import { getAuth, signOut } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
+import { doc } from 'firebase/firestore';
 
 const navLinks = [
   { href: '/home', label: 'Home' },
@@ -47,13 +48,23 @@ function NavLink({ href, children, onClick }: { href: string; children: React.Re
 
 export default function Header() {
   const [isOpen, setIsOpen] = React.useState(false);
-  const { user } = useAuth();
+  const { user } = useUser();
+  const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
 
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userProfile } = useDoc<{fullName: string}>(userDocRef);
+
   const handleSignOut = async () => {
+    if (!auth) return;
     try {
-      await signOut(getAuth());
+      await signOut(auth);
       toast({
         title: 'Signed Out',
         description: 'You have been successfully signed out.',
@@ -68,6 +79,26 @@ export default function Header() {
     }
   };
   
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+
+  const publicPaths = ['/login', '/signup', '/'];
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (isClient && !user && !publicPaths.includes(pathname) && pathname !== '/') {
+        router.replace('/login');
+    }
+  }, [user, isClient, pathname, router]);
+
+  if (!isClient) {
+    return null; 
+  }
+
+
   return (
     <header className="sticky top-0 z-50 w-full bg-primary text-primary-foreground">
       <div className="container flex h-20 items-center justify-between">
@@ -94,17 +125,17 @@ export default function Header() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={user?.photoURL || ''} alt={user?.fullName || 'User'} />
+                  <AvatarImage src={user?.photoURL || ''} alt={userProfile?.fullName || 'User'} />
                   <AvatarFallback>
-                    {user?.fullName ? user.fullName.charAt(0).toUpperCase() : <User />}
+                    {userProfile?.fullName ? userProfile.fullName.charAt(0).toUpperCase() : <User />}
                   </AvatarFallback>
                 </Avatar>
-                <span className="font-semibold">{user?.fullName || 'User'}</span>
+                <span className="font-semibold">{userProfile?.fullName || 'User'}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>
-                <p className="font-bold">{user?.fullName || 'User'}</p>
+                <p className="font-bold">{userProfile?.fullName || 'User'}</p>
                 <p className="text-xs text-muted-foreground font-normal">{user?.email}</p>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />

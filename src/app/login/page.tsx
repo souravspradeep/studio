@@ -4,7 +4,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
@@ -18,8 +18,9 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { signInWithEmail } from '@/actions';
 import Link from 'next/link';
+import { useAuth, useUser } from '@/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -29,7 +30,15 @@ const formSchema = z.object({
 export default function LoginPage() {
   const { toast } = useToast();
   const router = useRouter();
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      router.replace('/home');
+    }
+  }, [user, isUserLoading, router]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -40,18 +49,15 @@ export default function LoginPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!auth) return;
     setIsSubmitting(true);
     try {
-      const result = await signInWithEmail(values);
-      if (result.success) {
-        toast({
-          title: 'Login Successful!',
-          description: "You're now logged in.",
-        });
-        router.push('/home');
-      } else {
-        throw new Error(result.error || 'Login failed');
-      }
+      await signInWithEmailAndPassword(auth, values.email, values.password);
+      toast({
+        title: 'Login Successful!',
+        description: "You're now logged in.",
+      });
+      // The useEffect will handle the redirect
     } catch (error: any) {
       toast({
         title: 'Login Failed',
@@ -61,6 +67,14 @@ export default function LoginPage() {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  if (isUserLoading || user) {
+    return (
+        <div className="flex h-screen w-screen items-center justify-center">
+            <div className="h-16 w-16 animate-spin rounded-full border-4 border-dashed border-primary"></div>
+        </div>
+    );
   }
 
   return (

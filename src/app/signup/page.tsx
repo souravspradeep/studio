@@ -18,8 +18,12 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { signUpWithEmail } from '@/actions';
 import Link from 'next/link';
+import { useAuth, useFirestore } from '@/firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { setDocumentNonBlocking } from '@/lib/firebase-actions';
+import { doc } from 'firebase/firestore';
+
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: 'Full name must be at least 2 characters.' }),
@@ -30,6 +34,8 @@ const formSchema = z.object({
 export default function SignUpPage() {
   const { toast } = useToast();
   const router = useRouter();
+  const auth = useAuth();
+  const firestore = useFirestore();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -42,18 +48,23 @@ export default function SignUpPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!auth || !firestore) return;
     setIsSubmitting(true);
     try {
-      const result = await signUpWithEmail(values);
-      if (result.success) {
-        toast({
-          title: 'Account Created!',
-          description: 'You can now log in with your new account.',
-        });
-        router.push('/login');
-      } else {
-        throw new Error(result.error || 'Sign up failed');
-      }
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const user = userCredential.user;
+
+      const userDocRef = doc(firestore, 'users', user.uid);
+      setDocumentNonBlocking(userDocRef, {
+        fullName: values.fullName,
+        email: user.email,
+      }, {});
+
+      toast({
+        title: 'Account Created!',
+        description: 'You can now log in with your new account.',
+      });
+      router.push('/login');
     } catch (error: any) {
       toast({
         title: 'Sign Up Failed',

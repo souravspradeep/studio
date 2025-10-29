@@ -21,12 +21,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { addFoundItem } from '@/actions';
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Checkbox } from './ui/checkbox';
 import Image from 'next/image';
-import { useAuth } from './AuthProvider';
+import { useUser, useFirestore } from '@/firebase';
+import { addDocumentNonBlocking } from '@/lib/firebase-actions';
+import { collection, serverTimestamp } from 'firebase/firestore';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Item name must be at least 2 characters.' }),
@@ -41,7 +42,8 @@ const formSchema = z.object({
 export function FoundItemForm() {
   const { toast } = useToast();
   const router = useRouter();
-  const { user, isLoading: isAuthLoading } = useAuth();
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -72,7 +74,7 @@ export function FoundItemForm() {
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (isAuthLoading) {
+    if (isUserLoading) {
         toast({
             title: 'Please wait',
             description: 'Authentication is in progress.',
@@ -86,28 +88,30 @@ export function FoundItemForm() {
         description: 'You must be logged in to report a found item.',
         variant: 'destructive',
       });
+      router.push('/login');
       return;
     }
+    if(!firestore) return;
 
     setIsSubmitting(true);
     try {
-      const result = await addFoundItem({
-        ...values,
-        userName: user.fullName || user.email || 'Anonymous',
-        userContact: user.email || '',
-        ownerId: user.uid,
-      });
+        const itemsCollection = collection(firestore, 'items');
+        await addDocumentNonBlocking(itemsCollection, {
+            ...values,
+            type: 'found',
+            status: 'open',
+            date: serverTimestamp(),
+            ownerId: user.uid,
+            userName: user.displayName || user.email,
+            userContact: user.email,
+        });
 
-      if (result.success) {
         toast({
           title: 'Report Filed!',
           description: 'Your found item report has been created. Thank you for your help!',
         });
         form.reset();
         router.push('/items');
-      } else {
-        throw new Error('Failed to add item');
-      }
     } catch (error: any) {
        toast({
         title: 'Submission Failed',
@@ -279,7 +283,7 @@ export function FoundItemForm() {
             />
             <div className="flex gap-4 pt-4">
                 <Button type="button" variant="outline" className="w-full" onClick={() => form.reset()} disabled={isSubmitting}>Cancel</Button>
-                <Button type="submit" className="w-full bg-accent hover:bg-accent/90" disabled={isSubmitting || isAuthLoading}>
+                <Button type="submit" className="w-full bg-accent hover:bg-accent/90" disabled={isSubmitting || isUserLoading}>
                   {isSubmitting ? 'Submitting...' : 'Report Found Item'}
                 </Button>
             </div>

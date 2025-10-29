@@ -6,8 +6,8 @@ import { cn } from '@/lib/utils';
 import Header from '@/components/Header';
 import { Toaster } from '@/components/ui/toaster';
 import { PageTransition } from '@/components/PageTransition';
-import { AuthProvider } from '@/components/AuthProvider';
 import { usePathname } from 'next/navigation';
+import { FirebaseClientProvider } from '@/firebase';
 
 
 export default function RootLayout({
@@ -31,7 +31,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
       <body className={cn('min-h-screen bg-background font-sans antialiased')} suppressHydrationWarning={true}>
-        <AuthProvider>
+        <FirebaseClientProvider>
           {showHeader && <Header />}
           <main className="flex-1">
             <PageTransition>
@@ -39,7 +39,7 @@ export default function RootLayout({
             </PageTransition>
           </main>
           <Toaster />
-        </AuthProvider>
+        </FirebaseClientProvider>
       </body>
     </html>
   );

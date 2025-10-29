@@ -1,16 +1,72 @@
 
+'use client';
+
 import { ItemCard } from '@/components/ItemCard';
-import { getFoundItems, getLostItems } from '@/actions';
 import { ListFilter, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useCollection, useFirestore } from '@/firebase';
+import { collection, query, where, orderBy } from 'firebase/firestore';
+import type { Item } from '@/lib/types';
+import { useMemo } from 'react';
+import { Card } from '@/components/ui/card';
 
-export default async function ItemsPage() {
-  const lostItems = await getLostItems();
-  const foundItems = await getFoundItems();
-  const returnedItems = lostItems.filter(item => item.status === 'returned');
+export default function ItemsPage() {
+  const firestore = useFirestore();
+
+  const lostItemsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(
+        collection(firestore, 'items'), 
+        where('type', '==', 'lost'), 
+        where('status', '==', 'open'),
+        orderBy('date', 'desc')
+    );
+  }, [firestore]);
+
+  const foundItemsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(
+        collection(firestore, 'items'), 
+        where('type', '==', 'found'),
+        orderBy('date', 'desc')
+    );
+  }, [firestore]);
+
+  const returnedItemsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(
+        collection(firestore, 'items'), 
+        where('status', '==', 'returned'),
+        orderBy('date', 'desc')
+    );
+  }, [firestore]);
+
+  const { data: lostItems, isLoading: isLoadingLost } = useCollection<Item>(lostItemsQuery as any);
+  const { data: foundItems, isLoading: isLoadingFound } = useCollection<Item>(foundItemsQuery as any);
+  const { data: returnedItems, isLoading: isLoadingReturned } = useCollection<Item>(returnedItemsQuery as any);
+
+  const renderItems = (items: Item[] | null, isLoading: boolean, emptyMessage: string) => {
+    if (isLoading) {
+      return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {[...Array(8)].map((_, i) => <Card key={i} className="h-[250px] animate-pulse bg-muted"></Card>)}
+        </div>
+      );
+    }
+    if (!items || items.length === 0) {
+      return <p className="text-center text-muted-foreground py-16">{emptyMessage}</p>;
+    }
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {items.map((item) => (
+          <ItemCard key={item.id} item={item} />
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -45,37 +101,13 @@ export default async function ItemsPage() {
         </div>
 
         <TabsContent value="lost-items">
-          {lostItems.filter(item => item.status === 'open').length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {lostItems.filter(item => item.status === 'open').map((item) => (
-                <ItemCard key={item.id} item={item} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-muted-foreground py-16">No active lost items have been reported.</p>
-          )}
+          {renderItems(lostItems, isLoadingLost, 'No active lost items have been reported.')}
         </TabsContent>
         <TabsContent value="found-items">
-          {foundItems.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {foundItems.map((item) => (
-                <ItemCard key={item.id} item={item} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-muted-foreground py-16">No found items have been reported yet.</p>
-          )}
+          {renderItems(foundItems, isLoadingFound, 'No found items have been reported yet.')}
         </TabsContent>
         <TabsContent value="returned-items">
-          {returnedItems.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {returnedItems.map((item) => (
-                <ItemCard key={item.id} item={item} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-muted-foreground py-16">No items have been marked as returned yet.</p>
-          )}
+          {renderItems(returnedItems, isLoadingReturned, 'No items have been marked as returned yet.')}
         </TabsContent>
       </Tabs>
     </div>
