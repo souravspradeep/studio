@@ -1,133 +1,140 @@
 /**
- * @fileOverview Firestore Security Rules for Campus Compass.
+ * @fileOverview This ruleset enforces a user-ownership model for user profiles and their lost item posts,
+ *   allows public read/write access to found item posts and authority submissions,
+ *   and restricts access to authority contact information.
  *
- * Core Philosophy:
- * This ruleset prioritizes a strict user-ownership model for personal data (users and their lost item posts)
- * while allowing public read access to found item posts and authority submissions.
- * User data is secured under /users/{userId}, ensuring only the authenticated user can access their profile.
- * Lost item posts are nested under the corresponding user, inheriting the user-ownership security.
- * Found item posts and authority submissions are stored in top-level collections, enabling public listing
- * and creation, but with owner-only control for updates and deletes.
+ * @dataStructure
+ *   - /users/{userId}: Stores user profile information, accessible only to the user themselves.
+ *   - /users/{userId}/lostItemPosts/{lostItemPostId}: Stores lost item posts created by a specific user, accessible only to that user.
+ *   - /foundItemPosts/{foundItemPostId}: Stores found item posts, publicly accessible.
+ *   - /authoritySubmissions/{authoritySubmissionId}: Stores submissions to the campus authority, publicly accessible.
+ *   - /authorityContacts/{authorityContactId}: Stores contact information for campus authorities, write-protected.
  *
- * Data Structure:
- * - /users/{userId}: Stores user profile information.
- * - /users/{userId}/lostItemPosts/{lostItemPostId}: Stores lost item posts created by a specific user.
- * - /foundItemPosts/{foundItemPostId}: Stores found item posts.
- * - /authoritySubmissions/{authoritySubmissionId}: Stores submissions to the campus authority.
- * - /authorityContacts/{authorityContactId}: Stores contact information for campus authorities.
- *
- * Key Security Decisions:
- * - User data is strictly controlled by the owning user.
- * - Lost item posts inherit the ownership of their parent user.
- * - Found item posts and authority submissions are publicly readable but only updatable/deletable by their creator.
- * - Authority contacts are likely managed by admins (rules not yet implemented).
- *
- * Denormalization for Authorization:
- * - The `userId` field is included in both `LostItemPost` and `FoundItemPost` documents to enable efficient
- *   listing of posts by a given user without requiring additional `get()` calls.
- *
- * Structural Segregation:
- * - `lostItemPosts` and `foundItemPosts` are stored in separate collections to simplify security rules and
- *   optimize query performance based on their distinct access patterns.
+ * @keySecurityDecisions
+ *   - Users can only read and write their own profile data and lost item posts.
+ *   - Found item posts and authority submissions are publicly accessible.
+ *   - Authority contact information is read and write-protected, simulating admin-only access for prototyping.
+ *   - User listing is disabled for privacy.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Enforces strict user-ownership for user profiles.
+     * @description Manages user profile information. Only the user can read/write their own data.
      * @path /users/{userId}
-     * @allow (create) Signed-in user with matching userId can create their profile.
-     * @allow (get, update, delete) Signed-in user with matching userId can read/write their profile.
-     * @deny (create, update, delete) Signed-in user with non-matching userId cannot create/modify another user's profile.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) - User with UID 'user_abc' can create their profile at /users/user_abc.
+     * @allow (get) - User with UID 'user_abc' can read their profile at /users/user_abc.
+     * @allow (update) - User with UID 'user_abc' can update their profile at /users/user_abc.
+     * @allow (delete) - User with UID 'user_abc' can delete their profile at /users/user_abc.
+     * @deny (create) - User with UID 'user_xyz' cannot create a profile at /users/user_abc.
+     * @deny (get) - User with UID 'user_xyz' cannot read the profile at /users/user_abc.
+     * @deny (update) - User with UID 'user_xyz' cannot update the profile at /users/user_abc.
+     * @deny (delete) - User with UID 'user_xyz' cannot delete the profile at /users/user_abc.
+     * @principle Enforces document ownership for writes.
      */
     match /users/{userId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
       function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
+        return request.auth.uid == userId;
       }
 
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource.data != null;
-      }
-
-      allow get: if isOwner(userId);
+      allow get: if isSignedIn() && isOwner(userId);
       allow list: if false;
-      allow create: if request.auth.uid == userId;
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
     }
 
     /**
-     * @description Enforces user-ownership for lost item posts within a user's profile.
+     * @description Stores lost item posts created by a specific user. Only the user can manage their own posts.
      * @path /users/{userId}/lostItemPosts/{lostItemPostId}
-     * @allow (create) Signed-in user with matching userId can create a lost item post.
-     * @allow (get, list, update, delete) Signed-in user with matching userId can read/write their own lost item posts.
-     * @deny (create, update, delete) Signed-in user with non-matching userId cannot create/modify another user's lost item posts.
-     * @principle Enforces document ownership and relational integrity.
+     * @allow (create) - User with UID 'user_abc' can create a lost item post under /users/user_abc/lostItemPosts/post1.
+     * @allow (get) - User with UID 'user_abc' can read a lost item post under /users/user_abc/lostItemPosts/post1.
+     * @allow (update) - User with UID 'user_abc' can update a lost item post under /users/user_abc/lostItemPosts/post1.
+     * @allow (delete) - User with UID 'user_abc' can delete a lost item post under /users/user_abc/lostItemPosts/post1.
+     * @deny (create) - User with UID 'user_xyz' cannot create a lost item post under /users/user_abc/lostItemPosts/post1.
+     * @deny (get) - User with UID 'user_xyz' cannot read a lost item post under /users/user_abc/lostItemPosts/post1.
+     * @deny (update) - User with UID 'user_xyz' cannot update a lost item post under /users/user_abc/lostItemPosts/post1.
+     * @deny (delete) - User with UID 'user_xyz' cannot delete a lost item post under /users/user_abc/lostItemPosts/post1.
+     * @principle Enforces document ownership for writes.
      */
     match /users/{userId}/lostItemPosts/{lostItemPostId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
       function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
+        return request.auth.uid == userId;
       }
 
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource.data != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if request.auth.uid == userId;
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
     }
 
     /**
-     * @description Allows public read access to found item posts, but restricts writes to the owner.
+     * @description Stores found item posts. Anyone can create, read, update and delete.
      * @path /foundItemPosts/{foundItemPostId}
-     * @allow (get, list) Anyone can read found item posts.
-     * @allow (create) Signed-in user can create a found item post.
-     * @deny (update, delete) Only the signed-in user that created the post can modify or delete it.
-     * @principle Public read, owner-only write.
+     * @allow (create) - Any authenticated user can create a found item post.
+     * @allow (get) - Any authenticated user can read a found item post.
+     * @allow (update) - Any authenticated user can update a found item post.
+     * @allow (delete) - Any authenticated user can delete a found item post.
+     * @principle Allows public read/write access for prototyping.
      */
     match /foundItemPosts/{foundItemPostId} {
       function isSignedIn() {
         return request.auth != null;
       }
 
-      allow get, list: if true;
+      allow get: if true;
+      allow list: if true;
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && request.auth.uid == resource.data.userId;
-      allow delete: if isSignedIn() && request.auth.uid == resource.data.userId;
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     /**
-     * @description Allows public read access to authority submissions, but restricts writes to the owner.
+     * @description Stores submissions to the campus authority. Anyone can create, read, update and delete.
      * @path /authoritySubmissions/{authoritySubmissionId}
-     * @allow (get, list) Anyone can read authority submissions.
-     * @allow (create) Signed-in user can create an authority submission.
-     * @deny (update, delete) Only the signed-in user that created the submission can modify or delete it.
-     * @principle Public read, owner-only write.
+     * @allow (create) - Any authenticated user can create an authority submission.
+     * @allow (get) - Any authenticated user can read an authority submission.
+     * @allow (update) - Any authenticated user can update an authority submission.
+     * @allow (delete) - Any authenticated user can delete an authority submission.
+     * @principle Allows public read/write access for prototyping.
      */
     match /authoritySubmissions/{authoritySubmissionId} {
       function isSignedIn() {
         return request.auth != null;
       }
 
-      allow get, list: if true;
+      allow get: if true;
+      allow list: if true;
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && request.auth.uid == resource.data.userId;
-      allow delete: if isSignedIn() && request.auth.uid == resource.data.userId;
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to authority contact information.  Likely admin-only.
+     * @description Stores contact information for campus authorities. Read-protected and write-protected to simulate admin-only access.
      * @path /authorityContacts/{authorityContactId}
-     * @allow (get, list, create, update, delete) No access granted yet.  Requires admin role implementation.
-     * @principle Placeholder for admin-controlled data.
+     * @deny (create) - No one can create authority contacts.
+     * @deny (get) - No one can read authority contacts.
+     * @deny (update) - No one can update authority contacts.
+     * @deny (delete) - No one can delete authority contacts.
+     * @principle Restricts access to simulate admin-only access.
      */
     match /authorityContacts/{authorityContactId} {
-      allow get, list, create, update, delete: if false; // TODO: Implement admin role check.
+      allow get: if false;
+      allow list: if false;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
   }
 }
