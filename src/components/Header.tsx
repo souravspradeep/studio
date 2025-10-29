@@ -60,7 +60,7 @@ export default function Header() {
   }, [firestore, user]);
 
   const { data: userProfile } = useDoc<{fullName: string}>(userDocRef);
-  const displayName = userProfile?.fullName || user?.displayName || user?.email;
+  const displayName = userProfile?.fullName;
   const avatarFallback = displayName ? displayName.charAt(0).toUpperCase() : <User />;
 
 
