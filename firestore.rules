@@ -1,108 +1,109 @@
-/**
- * @file Firebase Security Rules for Campus Compass
- * @core Philosophy: This ruleset prioritizes user data ownership and restricts access based on the authenticated user.
- * All user-specific data is nested under /users/{userId} to enforce strict ownership.
- * Public read access is granted to certain collections (e.g., foundItemPosts), while writes are restricted.
- * @data Structure:
- * - /users/{userId}: Stores user profiles, accessible only by the user.
- * - /users/{userId}/lostItemPosts/{lostItemPostId}: Stores lost item posts, accessible only by the owning user.
- * - /foundItemPosts/{foundItemPostId}: Stores found item posts, publicly readable but write-protected.
- * - /authoritySubmissions/{authoritySubmissionId}: Stores authority submissions; write-protected for now.
- * - /authorityContacts/{authorityContactId}: Stores authority contacts; write-protected for now.
- * @key Security Decisions:
- * - User listing is disallowed.
- * - `foundItemPosts` are publicly readable, requiring an `ownerId` or similar to enable secure writes.
- * - Missing validation for authority contacts due to lack of role-based access control in the data model.
- * @denormalization for Authorization:  None. User IDs are extracted from paths.  If other roles are added, consider adding role fields to the documents in question.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Protects user profiles; only the authenticated user can read or write their own profile.
+     * @description Controls access to user profile information.
      * @path /users/{userId}
-     * @allow (create) User with UID 'user123' can create their profile at /users/user123.
-     * @allow (get) User with UID 'user123' can read their profile at /users/user123.
-     * @allow (update) User with UID 'user123' can update their profile at /users/user123.
-     * @allow (delete) User with UID 'user123' can delete their profile at /users/user123.
-     * @deny (create) User with UID 'user123' cannot create a profile at /users/user456.
-     * @deny (get) User with UID 'user123' cannot read the profile at /users/user456.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) User with ID 'user123' can create their own profile.
+     * @deny (create) User with ID 'user456' cannot create a profile with ID 'user123'.
+     * @allow (get, update, delete) User with ID 'user123' can read, update, and delete their own profile.
+     * @deny (get, update, delete) User with ID 'user456' cannot read, update, or delete the profile with ID 'user123'.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
      */
     match /users/{userId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
       allow get: if isOwner(userId);
-      allow list: if false; // No user listing
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
 
     /**
-     * @description Protects lost item posts; only the owning user can read or write posts under their profile.
+     * @description Controls access to lost item posts created by a specific user.
      * @path /users/{userId}/lostItemPosts/{lostItemPostId}
-     * @allow (create) User with UID 'user123' can create a lost item post under /users/user123/lostItemPosts/post1.
-     * @allow (get) User with UID 'user123' can read a lost item post under /users/user123/lostItemPosts/post1.
-     * @allow (update) User with UID 'user123' can update a lost item post under /users/user123/lostItemPosts/post1.
-     * @allow (delete) User with UID 'user123' can delete a lost item post under /users/user123/lostItemPosts/post1.
-     * @deny (create) User with UID 'user123' cannot create a lost item post under /users/user456/lostItemPosts/post1.
-     * @deny (get) User with UID 'user123' cannot read a lost item post under /users/user456/lostItemPosts/post1.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) User with ID 'user123' can create a lost item post in their own profile.
+     * @deny (create) User with ID 'user456' cannot create a lost item post in user123's profile.
+     * @allow (get, update, delete) User with ID 'user123' can read, update, and delete their own lost item post.
+     * @deny (get, update, delete) User with ID 'user456' cannot read, update, or delete the lost item post with ID 'lostItem123' in user123's profile.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
      */
     match /users/{userId}/lostItemPosts/{lostItemPostId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
       allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
 
     /**
-     * @description Allows public read access to found item posts, but restricts writes.
+     * @description Controls access to found item posts.
      * @path /foundItemPosts/{foundItemPostId}
-     * @allow (get) Any user can read a found item post at /foundItemPosts/post1.
-     * @allow (list) Any user can list found item posts.
-     * @deny (create) Any user CANNOT create a found item post unless the schema is updated with an ownership field.
-     * @principle Allows public read access but restricts writes.
+     * @allow (create, get, list) Any signed-in user can create, get, and list found item posts.
+     * @deny (update, delete) Only the owner can update and delete, but the ownership is not defined in data model.
+     * @principle Allows public read access and owner-only writes (owner validation to be implemented).
      */
     match /foundItemPosts/{foundItemPostId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      
       allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow create: if isSignedIn();
+      allow update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
     /**
-     * @description Restricts access to authority submissions.
+     * @description Controls access to authority submissions.
      * @path /authoritySubmissions/{authoritySubmissionId}
-     * @deny (create) No one can create an authority submission.
-     * @principle Restricts write access.
+     * @allow (create, get, list) Any signed-in user can create, get, and list authority submissions.
+     * @deny (update, delete) Only the owner can update and delete, but the ownership is not defined in data model.
+     * @principle Allows public read access and owner-only writes (owner validation to be implemented).
      */
     match /authoritySubmissions/{authoritySubmissionId} {
-      allow get, list: if false;
-      allow create, update, delete: if false;
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
     /**
-     * @description Restricts access to authority contacts.
+     * @description Controls access to authority contacts.
      * @path /authorityContacts/{authorityContactId}
-     * @deny (create) No one can create an authority contact.
-     * @principle Restricts write access.
+     * @allow (get, list) Any signed-in user can read and list authority contacts.
+     * @deny (create, update, delete) Only admins can create, update, and delete authority contacts.
+     * @principle Restricts write access to administrators (not yet implemented).
      */
     match /authorityContacts/{authorityContactId} {
-      allow get, list: if false;
-      allow create, update, delete: if false;
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if false; // TODO: Implement admin-only access
     }
-  }
 
-  // Helper functions
-  function isSignedIn() {
-    return request.auth != null;
-  }
-
-  function isOwner(userId) {
-    return isSignedIn() && request.auth.uid == userId;
-  }
-
-  function isExistingOwner(userId) {
-    return isOwner(userId) && resource != null;
+        match /{path=**} {
+            allow read, write: if false;
+        }
   }
 }
