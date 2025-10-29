@@ -5,17 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ArrowRight, CheckCircle, FileText, FileQuestion, FilePlus } from 'lucide-react';
 import Link from 'next/link';
-import { useCollection, useFirestore } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { ItemCard } from '@/components/ItemCard';
 import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import type { Item } from '@/lib/types';
-import { useMemo } from 'react';
 
 
 export default function Home() {
   const firestore = useFirestore();
 
-  const lostItemsQuery = useMemo(() => {
+  const lostItemsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
         collection(firestore, 'items'), 
@@ -24,7 +23,7 @@ export default function Home() {
     );
   }, [firestore]);
 
-  const { data: allLostItems, isLoading: isLoadingLostItems } = useCollection<Item>(lostItemsQuery as any);
+  const { data: allLostItems, isLoading: isLoadingLostItems } = useCollection<Item>(lostItemsQuery);
 
   const activeLostItems = allLostItems?.filter(item => item.status === 'open') || [];
   const itemsReturned = allLostItems?.filter(item => item.status === 'returned').length || 0;

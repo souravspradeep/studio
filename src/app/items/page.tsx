@@ -7,16 +7,15 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useCollection, useFirestore } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import type { Item } from '@/lib/types';
-import { useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 
 export default function ItemsPage() {
   const firestore = useFirestore();
 
-  const lostItemsQuery = useMemo(() => {
+  const lostItemsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
         collection(firestore, 'items'), 
@@ -26,7 +25,7 @@ export default function ItemsPage() {
     );
   }, [firestore]);
 
-  const foundItemsQuery = useMemo(() => {
+  const foundItemsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
         collection(firestore, 'items'), 
@@ -35,7 +34,7 @@ export default function ItemsPage() {
     );
   }, [firestore]);
 
-  const returnedItemsQuery = useMemo(() => {
+  const returnedItemsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
         collection(firestore, 'items'), 
@@ -44,9 +43,9 @@ export default function ItemsPage() {
     );
   }, [firestore]);
 
-  const { data: lostItems, isLoading: isLoadingLost } = useCollection<Item>(lostItemsQuery as any);
-  const { data: foundItems, isLoading: isLoadingFound } = useCollection<Item>(foundItemsQuery as any);
-  const { data: returnedItems, isLoading: isLoadingReturned } = useCollection<Item>(returnedItemsQuery as any);
+  const { data: lostItems, isLoading: isLoadingLost } = useCollection<Item>(lostItemsQuery);
+  const { data: foundItems, isLoading: isLoadingFound } = useCollection<Item>(foundItemsQuery);
+  const { data: returnedItems, isLoading: isLoadingReturned } = useCollection<Item>(returnedItemsQuery);
 
   const renderItems = (items: Item[] | null, isLoading: boolean, emptyMessage: string) => {
     if (isLoading) {
