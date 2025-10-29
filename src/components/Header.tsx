@@ -60,6 +60,9 @@ export default function Header() {
   }, [firestore, user]);
 
   const { data: userProfile } = useDoc<{fullName: string}>(userDocRef);
+  const displayName = userProfile?.fullName || user?.displayName || user?.email;
+  const avatarFallback = displayName ? displayName.charAt(0).toUpperCase() : <User />;
+
 
   const handleSignOut = async () => {
     if (!auth) return;
@@ -125,17 +128,17 @@ export default function Header() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={user?.photoURL || ''} alt={userProfile?.fullName || 'User'} />
+                  <AvatarImage src={user?.photoURL || ''} alt={displayName || 'User'} />
                   <AvatarFallback>
-                    {userProfile?.fullName ? userProfile.fullName.charAt(0).toUpperCase() : <User />}
+                    {avatarFallback}
                   </AvatarFallback>
                 </Avatar>
-                <span className="font-semibold">{userProfile?.fullName || 'User'}</span>
+                <span className="font-semibold">{displayName}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>
-                <p className="font-bold">{userProfile?.fullName || 'User'}</p>
+                <p className="font-bold">{displayName}</p>
                 <p className="text-xs text-muted-foreground font-normal">{user?.email}</p>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
