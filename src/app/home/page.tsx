@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ArrowRight, CheckCircle, FileText, FileQuestion, FilePlus } from 'lucide-react';
 import Link from 'next/link';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { ItemCard } from '@/components/ItemCard';
 import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import type { Item } from '@/lib/types';
@@ -13,17 +13,20 @@ import type { Item } from '@/lib/types';
 
 export default function Home() {
   const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
 
   const lostItemsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return query(
         collection(firestore, 'items'), 
         where('type', '==', 'lost'), 
         orderBy('date', 'desc')
     );
-  }, [firestore]);
+  }, [firestore, user]);
 
   const { data: allLostItems, isLoading: isLoadingLostItems } = useCollection<Item>(lostItemsQuery);
+
+  const isLoading = isUserLoading || isLoadingLostItems;
 
   const activeLostItems = allLostItems?.filter(item => item.status === 'open') || [];
   const itemsReturned = allLostItems?.filter(item => item.status === 'returned').length || 0;
@@ -64,7 +67,7 @@ export default function Home() {
           <CardContent className="flex items-center justify-between p-6">
             <div>
               <p className="text-muted-foreground">Active Posts</p>
-              <p className="text-4xl font-bold">{isLoadingLostItems ? '...' : activePosts}</p>
+              <p className="text-4xl font-bold">{isLoading ? '...' : activePosts}</p>
             </div>
             <div className="bg-blue-100 p-4 rounded-full">
               <FileText className="text-primary" size={28}/>
@@ -75,7 +78,7 @@ export default function Home() {
           <CardContent className="flex items-center justify-between p-6">
             <div>
               <p className="text-muted-foreground">Items Returned</p>
-              <p className="text-4xl font-bold">{isLoadingLostItems ? '...' : itemsReturned}</p>
+              <p className="text-4xl font-bold">{isLoading ? '...' : itemsReturned}</p>
             </div>
             <div className="bg-green-100 p-4 rounded-full">
               <CheckCircle className="text-green-600" size={28}/>
@@ -86,7 +89,7 @@ export default function Home() {
       
       <div className="w-full max-w-5xl">
         <h2 className="text-3xl font-bold mb-8 text-center md:text-left">Recently Lost Items</h2>
-        {isLoadingLostItems ? (
+        {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[...Array(4)].map((_, i) => <Card key={i} className="h-[250px] animate-pulse bg-muted"></Card>)}
             </div>

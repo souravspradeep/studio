@@ -7,47 +7,49 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import type { Item } from '@/lib/types';
 import { Card } from '@/components/ui/card';
 
 export default function ItemsPage() {
   const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
 
   const lostItemsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return query(
         collection(firestore, 'items'), 
         where('type', '==', 'lost'), 
         where('status', '==', 'open'),
         orderBy('date', 'desc')
     );
-  }, [firestore]);
+  }, [firestore, user]);
 
   const foundItemsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return query(
         collection(firestore, 'items'), 
         where('type', '==', 'found'),
         orderBy('date', 'desc')
     );
-  }, [firestore]);
+  }, [firestore, user]);
 
   const returnedItemsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return query(
         collection(firestore, 'items'), 
         where('status', '==', 'returned'),
         orderBy('date', 'desc')
     );
-  }, [firestore]);
+  }, [firestore, user]);
 
   const { data: lostItems, isLoading: isLoadingLost } = useCollection<Item>(lostItemsQuery);
   const { data: foundItems, isLoading: isLoadingFound } = useCollection<Item>(foundItemsQuery);
   const { data: returnedItems, isLoading: isLoadingReturned } = useCollection<Item>(returnedItemsQuery);
 
-  const renderItems = (items: Item[] | null, isLoading: boolean, emptyMessage: string) => {
+  const renderItems = (items: Item[] | null, isLoadingData: boolean, emptyMessage: string) => {
+    const isLoading = isUserLoading || isLoadingData;
     if (isLoading) {
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
