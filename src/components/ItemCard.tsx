@@ -69,6 +69,8 @@ export function ItemCard({ item }: { item: Item }) {
   const date = item.date instanceof Date 
     ? item.date 
     : (item.date as any)?.toDate ? (item.date as any).toDate() : new Date();
+    
+  const showContactEmail = item.userName !== item.userContact;
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -197,12 +199,14 @@ export function ItemCard({ item }: { item: Item }) {
                 <User className="h-4 w-4 text-muted-foreground" />
                 <p className="text-muted-foreground">{item.userName}</p>
              </div>
-            <div className="flex items-center gap-2 mt-1">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <a href={`mailto:${item.userContact}`} className="underline">
-                    {item.userContact}
-                </a>
-            </div>
+            {showContactEmail && (
+              <div className="flex items-center gap-2 mt-1">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <a href={`mailto:${item.userContact}`} className="underline">
+                      {item.userContact}
+                  </a>
+              </div>
+            )}
              {item.mobileNumber && (
                 <div className="flex items-center gap-2 mt-1">
                     <Phone className="h-4 w-4 text-muted-foreground" />
