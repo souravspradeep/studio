@@ -1,123 +1,93 @@
 /**
- * @fileoverview Firestore Security Rules for Lost & Found App
+ * @fileoverview Firestore Security Rules for Lost and Found App
  *
  * Core Philosophy:
- * This ruleset enforces a user-centric security model where users can only
- * read and write their own profile data. Lost and found items are publicly
- * readable but can only be created, updated, or deleted by their respective owners.
+ * This ruleset prioritizes user data ownership and prevents unauthorized access to user profiles and item postings. It leverages Firebase Authentication to verify user identity and enforces strict access controls based on user IDs.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profile information, accessible only by the
- *   authenticated user with the matching userId.
- * - /lostItems/{lostItemId}: Stores lost item posts. Publicly readable, but
- *   write access is restricted to the owner of the item.
- * - /foundItems/{foundItemId}: Stores found item posts. Publicly readable, but
- *   write access is restricted to the owner of the item.
+ * - `/users/{userId}`: Stores individual user profiles. Access is restricted to the owning user.
+ * - `/lostItems/{lostItemId}`: Stores lost item postings. Publicly readable, but write access is limited to authenticated users.
+ * - `/foundItems/{foundItemId}`: Stores found item postings. Publicly readable, but write access is limited to authenticated users.
  *
  * Key Security Decisions:
- * - User listing is explicitly denied.
- * - Data types and full schema validation are skipped in prototyping mode to allow rapid iteration.
+ * - Users can only read and write their own user profiles. Listing all users is disallowed.
+ * - Both `lostItems` and `foundItems` are readable by anyone, but creating, updating, or deleting an item requires authentication and ownership of the item.
  *
  * Denormalization for Authorization:
- * - The `Item` documents in both `/lostItems` and `/foundItems` collections
- *   contain an `ownerId` field. This denormalization is crucial to avoid
- *   costly `get()` calls in the security rules when checking ownership.
+ * - The `Item` entity includes an `ownerId` field to simplify ownership checks for `lostItems` and `foundItems`. This avoids costly `get()` operations on other documents.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to user profile data.
+     * @description Checks if the user is signed in.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the request is made by the owner of the resource.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the request is made by the owner of an existing resource.
+     */
+    function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Rules for /users/{userId} documents.
      * @path /users/{userId}
-     * @allow (get) Signed-in user can read their own profile.
-     * @allow (create) Signed-in user can create their own profile, with matching id.
-     * @allow (update) Signed-in user can update their own profile.
-     * @allow (delete) Signed-in user can delete their own profile.
-     * @deny (get) Signed-in user cannot read another user's profile.
-     * @deny (list) User listing is not allowed.
-     * @deny (create) Cannot create a profile with a mismatched user ID.
-     * @principle Enforces document ownership for user profiles.
+     * @allow (create) User jVOeXpzxIbfTfFhEX5s6uyARuEu1 can create their own user document.
+     * @allow (get, update, delete) User jVOeXpzxIbfTfFhEX5s6uyARuEu1 can get, update, and delete their own user document.
+     * @deny (create) User abc cannot create document for user jVOeXpzxIbfTfFhEX5s6uyARuEu1
+     * @deny (get, update, delete) User abc cannot get, update, and delete document for user jVOeXpzxIbfTfFhEX5s6uyARuEu1
+     * @principle Enforces user ownership for user profiles.
      */
     match /users/{userId} {
-      // Verify identity
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      // Verify ownership
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-          return isOwner(userId) && resource != null;
-      }
-
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow get: if isOwner(userId);
-      allow list: if false;
-
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
+      allow list: if false; // Listing users is not allowed
       allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to lost item posts.
+     * @description Rules for /lostItems/{lostItemId} documents.
      * @path /lostItems/{lostItemId}
-     * @allow (get, list) Anyone can read or list lost item posts.
-     * @allow (create) Signed-in user can create a lost item post with a matching ownerId.
-     * @allow (update) Owner can update their own lost item post.
-     * @allow (delete) Owner can delete their own lost item post.
-     * @deny (create) Cannot create a lost item post with a mismatched ownerId.
-     * @principle Allows public reads but enforces ownership for writes on lost item posts.
+     * @allow (get, list) Anyone can read lost items.
+     * @allow (create) User jVOeXpzxIbfTfFhEX5s6uyARuEu1 can create a lost item if they are the owner.
+     * @allow (update, delete) User jVOeXpzxIbfTfFhEX5s6uyARuEu1 can update/delete a lost item if they are the owner.
+     * @deny (create) Anonymous user cannot create a lost item.
+     * @deny (update, delete) User abc cannot update/delete a lost item owned by jVOeXpzxIbfTfFhEX5s6uyARuEu1.
+     * @principle Allows public read access while enforcing owner-only writes.
      */
     match /lostItems/{lostItemId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(ownerId) {
-        return request.auth.uid == ownerId;
-      }
-
-      function isExistingOwner(ownerId) {
-          return isOwner(ownerId) && resource != null;
-      }
-
-      allow get: if true;
-      allow list: if true;
-      allow create: if isSignedIn() && isOwner(request.resource.data.ownerId);
+      allow get, list: if true;
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       allow update: if isExistingOwner(resource.data.ownerId);
       allow delete: if isExistingOwner(resource.data.ownerId);
     }
 
-    /**
-     * @description Controls access to found item posts.
+     /**
+     * @description Rules for /foundItems/{foundItemId} documents.
      * @path /foundItems/{foundItemId}
-     * @allow (get, list) Anyone can read or list found item posts.
-     * @allow (create) Signed-in user can create a found item post with a matching ownerId.
-     * @allow (update) Owner can update their own found item post.
-     * @allow (delete) Owner can delete their own found item post.
-     * @deny (create) Cannot create a found item post with a mismatched ownerId.
-     * @principle Allows public reads but enforces ownership for writes on found item posts.
+     * @allow (get, list) Anyone can read found items.
+     * @allow (create) User jVOeXpzxIbfTfFhEX5s6uyARuEu1 can create a found item if they are the owner.
+     * @allow (update, delete) User jVOeXpzxIbfTfFhEX5s6uyARuEu1 can update/delete a found item if they are the owner.
+     * @deny (create) Anonymous user cannot create a found item.
+     * @deny (update, delete) User abc cannot update/delete a found item owned by jVOeXpzxIbfTfFhEX5s6uyARuEu1.
+     * @principle Allows public read access while enforcing owner-only writes.
      */
     match /foundItems/{foundItemId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(ownerId) {
-        return request.auth.uid == ownerId;
-      }
-
-      function isExistingOwner(ownerId) {
-          return isOwner(ownerId) && resource != null;
-      }
-
-      allow get: if true;
-      allow list: if true;
-      allow create: if isSignedIn() && isOwner(request.resource.data.ownerId);
+      allow get, list: if true;
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       allow update: if isExistingOwner(resource.data.ownerId);
       allow delete: if isExistingOwner(resource.data.ownerId);
     }
