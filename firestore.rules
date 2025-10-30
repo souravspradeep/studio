@@ -1,105 +1,90 @@
 /**
- * @fileoverview Firestore Security Rules for the "Lost and Found" application.
+ * @fileoverview Firestore Security Rules for Lost and Found App
  *
  * Core Philosophy:
- * This ruleset prioritizes data ownership and prevents unauthorized access.
- * Users can only create, read, update, and delete their own data.
- * Public read access is granted to the `lostItems` and `foundItems` collections to support discovery of items.
+ * This ruleset prioritizes user data protection and access control.
+ * Users can only read and write their own profile data. Lost and found items are publicly readable,
+ * but only the owner can modify or delete their own posts.
  *
  * Data Structure:
- * - /users/{userId}: Stores individual user profiles.  Access is restricted to the owning user.
- * - /lostItems/{lostItemId}: Stores lost item posts. Publicly readable, owner-only writes.
- * - /foundItems/{foundItemId}: Stores found item posts. Publicly readable, owner-only writes.
+ * - /users/{userId}: Stores user profile data. Access is restricted to the user themselves.
+ * - /lostItems/{lostItemId}: Stores lost item posts. Accessible for public reads.
+ * - /foundItems/{foundItemId}: Stores found item posts. Accessible for public reads.
  *
  * Key Security Decisions:
- * - User listing is disallowed to protect privacy.
- * - Read-only collections are handled with public `get` and `list` permissions.
- * - Ambiguous relationships default to strict owner-only access.
- *
- * Denormalization for Authorization:
- * - Both `lostItems` and `foundItems` require an `ownerId` field on each document.
- *   This is essential to quickly verify ownership for update and delete operations.
- *
- * Structural Segregation:
- * - The application uses top-level collections for public posts (`lostItems`, `foundItems`)
- *   and a user subcollection for private user data (`/users/{userId}`).
+ * - Users cannot list all users.
+ * - Ownership of Items is verified against the 'ownerId' field in the document.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Checks if the request is authenticated.
+     * @description Checks if the user is signed in.
      */
     function isSignedIn() {
       return request.auth != null;
     }
 
     /**
-     * @description Checks if the authenticated user is the owner of the resource.
+     * @description Checks if the user is the owner of the resource.
      */
     function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+      return request.auth.uid == userId;
     }
 
     /**
-     * @description Checks if the authenticated user is the existing owner of the resource.
-     *  This helper function is used for update and delete operations, and protects against
-     *  attempts to modify or delete non-existent documents.
+     * @description Checks if the user is the owner of the existing resource.
      */
-    function isExistingOwner(ownerId) {
-        return isSignedIn() && request.auth.uid == ownerId && resource != null;
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
     }
-
 
     /**
      * @description Rules for the /users/{userId} collection.
      * @path /users/{userId}
-     * @allow (create) User 'user_abc' can create their own user document.
-     * @allow (get) User 'user_abc' can read their own user document.
-     * @deny (get) User 'user_xyz' cannot read User 'user_abc' document.
-     * @principle Enforces document ownership for all operations on user documents.
+     * @allow (create) User jVOeXpzxIbfTfFhEX5s6uyARuEu1 can create their own profile.
+     * @allow (get, update, delete) User jVOeXpzxIbfTfFhEX5s6uyARuEu1 can access their own profile.
+     * @deny (create) User abc cannot create a profile with ID jVOeXpzxIbfTfFhEX5s6uyARuEu1.
+     * @deny (get, update, delete) User abc cannot access User jVOeXpzxIbfTfFhEX5s6uyARuEu1's profile.
+     * @principle Enforces user-ownership for user profiles.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false; // User listing is disallowed for privacy.
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
-    }
-
-     /**
-      * @description Rules for the /lostItems/{lostItemId} collection.
-      * @path /lostItems/{lostItemId}
-      * @allow (get) Any user can read a lost item.
-      * @allow (list) Any user can list lost items.
-      * @allow (create) User 'user_abc' can create a lost item with their ownerId.
-      * @deny (update) User 'user_xyz' cannot update a lost item owned by 'user_abc'.
-      * @principle Allows public read access but restricts writes to the owner.
-      */
-    match /lostItems/{lostItemId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update: if isExistingOwner(resource.data.ownerId);
-      allow delete: if isExistingOwner(resource.data.ownerId);
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
+      allow get, update, delete: if isExistingOwner(userId) && request.resource.data.id == resource.data.id; //Id must be immutable on update
+      allow list: if false;
     }
 
     /**
+     * @description Rules for the /lostItems/{lostItemId} collection.
+     * @path /lostItems/{lostItemId}
+     * @allow (get, list) Anyone can read lost items.
+     * @allow (create) User jVOeXpzxIbfTfFhEX5s6uyARuEu1 can create a lost item if they are the owner.
+     * @allow (update, delete) User jVOeXpzxIbfTfFhEX5s6uyARuEu1 can update or delete their own lost item.
+     * @deny (create) User abc cannot create a lost item for User jVOeXpzxIbfTfFhEX5s6uyARuEu1.
+     * @deny (update, delete) User abc cannot update or delete User jVOeXpzxIbfTfFhEX5s6uyARuEu1's lost item.
+     * @principle Allows public reads, but enforces document ownership for writes.
+     */
+    match /lostItems/{lostItemId} {
+      allow get, list: if true;
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isExistingOwner(resource.data.ownerId);
+    }
+
+       /**
      * @description Rules for the /foundItems/{foundItemId} collection.
      * @path /foundItems/{foundItemId}
-     * @allow (get) Any user can read a found item.
-     * @allow (list) Any user can list found items.
-     * @allow (create) User 'user_abc' can create a found item with their ownerId.
-     * @deny (update) User 'user_xyz' cannot update a found item owned by 'user_abc'.
-     * @principle Allows public read access but restricts writes to the owner.
+     * @allow (get, list) Anyone can read found items.
+     * @allow (create) User jVOeXpzxIbfTfFhEX5s6uyARuEu1 can create a found item if they are the owner.
+     * @allow (update, delete) User jVOeXpzxIbfTfFhEX5s6uyARuEu1 can update or delete their own found item.
+     * @deny (create) User abc cannot create a found item for User jVOeXpzxIbfTfFhEX5s6uyARuEu1.
+     * @deny (update, delete) User abc cannot update or delete User jVOeXpzxIbfTfFhEX5s6uyARuEu1's found item.
+     * @principle Allows public reads, but enforces document ownership for writes.
      */
     match /foundItems/{foundItemId} {
-      allow get: if true;
-      allow list: if true;
+      allow get, list: if true;
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update: if isExistingOwner(resource.data.ownerId);
-      allow delete: if isExistingOwner(resource.data.ownerId);
+      allow update, delete: if isExistingOwner(resource.data.ownerId);
     }
   }
 }
