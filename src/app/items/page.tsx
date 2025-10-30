@@ -8,46 +8,44 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy } from 'firebase/firestore';
 import type { Item } from '@/lib/types';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { useMemo } from 'react';
 
 export default function ItemsPage() {
   const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const { isUserLoading } = useUser();
 
-  const lostItemsQuery = useMemoFirebase(() => {
+  const allLostItemsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
-        collection(firestore, 'lostItems'), 
-        where('status', '==', 'open'),
-        orderBy('date', 'desc')
+      collection(firestore, 'lostItems'),
+      orderBy('date', 'desc')
     );
   }, [firestore]);
 
-  const foundItemsQuery = useMemoFirebase(() => {
+  const allFoundItemsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
-        collection(firestore, 'foundItems'),
-        orderBy('date', 'desc')
+      collection(firestore, 'foundItems'),
+      orderBy('date', 'desc')
     );
   }, [firestore]);
 
-  const returnedItemsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(
-        collection(firestore, 'lostItems'), 
-        where('status', '==', 'returned'),
-        orderBy('date', 'desc')
-    );
-  }, [firestore]);
+  const { data: allLostItems, isLoading: isLoadingLost, error: lostError } = useCollection<Item>(allLostItemsQuery);
+  const { data: foundItems, isLoading: isLoadingFound, error: foundError } = useCollection<Item>(allFoundItemsQuery);
 
-  const { data: lostItems, isLoading: isLoadingLost, error: lostError } = useCollection<Item>(lostItemsQuery);
-  const { data: foundItems, isLoading: isLoadingFound, error: foundError } = useCollection<Item>(foundItemsQuery);
-  const { data: returnedItems, isLoading: isLoadingReturned, error: returnedError } = useCollection<Item>(returnedItemsQuery);
+  const openLostItems = useMemo(() => {
+    return allLostItems?.filter(item => item.status === 'open');
+  }, [allLostItems]);
 
-  const renderItems = (items: Item[] | null, itemType: 'lost' | 'found', isLoadingData: boolean, error: Error | null, emptyMessage: string) => {
+  const returnedItems = useMemo(() => {
+    return allLostItems?.filter(item => item.status === 'returned');
+  }, [allLostItems]);
+
+  const renderItems = (items: Item[] | null | undefined, itemType: 'lost' | 'found', isLoadingData: boolean, error: Error | null, emptyMessage: string) => {
     const isLoading = isUserLoading || isLoadingData;
     if (isLoading) {
       return (
@@ -111,13 +109,13 @@ export default function ItemsPage() {
           </div>
         </div>
         <TabsContent value="lost-items">
-          {renderItems(lostItems, 'lost', isLoadingLost, lostError, 'No active lost items have been reported.')}
+          {renderItems(openLostItems, 'lost', isLoadingLost, lostError, 'No active lost items have been reported.')}
         </TabsContent>
         <TabsContent value="found-items">
           {renderItems(foundItems, 'found', isLoadingFound, foundError, 'No found items have been reported yet.')}
         </TabsContent>
         <TabsContent value="returned-items">
-          {renderItems(returnedItems, 'lost', isLoadingReturned, returnedError, 'No items have been marked as returned yet.')}
+          {renderItems(returnedItems, 'lost', isLoadingLost, lostError, 'No items have been marked as returned yet.')}
         </TabsContent>
       </Tabs>
     </div>
