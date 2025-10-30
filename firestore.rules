@@ -1,68 +1,69 @@
 /**
- * @file Firestore Security Rules for Campus Compass
- * @Core Philosophy: This ruleset enforces a combination of user-ownership and public-read with owner-write access patterns,
- * ensuring data is primarily controlled by its creator while allowing for public discoverability where appropriate.
- * @Data Structure: The database is organized around users and their lost item posts, with separate top-level collections
- * for found item posts and authority submissions. User profiles are stored under `/users/{userId}`.
- * @Key Security Decisions:
- *   - Users can only read/write their own profile data.
- *   - Users own the lost item posts they create under their profile.
- *   - Found item posts and authority submissions are publicly readable but writable by any authenticated user.
- *   - Authority contacts are writable by anyone. Consider restricting this in a production environment.
- * @Denormalization for Authorization: The `LostItemPost` includes a `userId` field to simplify ownership checks
- * within the `/users/{userId}/lostItemPosts/{lostItemPostId}` collection.
+ * @fileOverview
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for user profiles and their associated lost item posts.
+ * Found item posts and authority submissions are publicly writeable, but access to authority contacts is restricted.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profile information. Only the user can read/write their own data.
+ * - /users/{userId}/lostItemPosts/{lostItemPostId}: Stores lost item posts created by a specific user. Only the user can read/write their own posts.
+ * - /foundItemPosts/{foundItemPostId}: Stores found item posts. Anyone can create posts. Only the user who created the post can update or delete.
+ * - /authoritySubmissions/{authoritySubmissionId}: Stores submissions to the campus authority. Anyone can create posts.
+ * - /authorityContacts/{authorityContactId}: Stores contact information for campus authorities.
+ *
+ * Key Security Decisions:
+ * - User listing is disallowed.
+ * - Found item posts are publicly readable, but updates/deletes are owner-controlled.
+ * - Authority submissions are publicly writeable.
+ * - Authority contacts are publicly readable, but updates/deletes are owner-controlled.
+ *
+ * Denormalization for Authorization:
+ * - The `LostItemPost` and `FoundItemPost` entities include a `userId` field to enable listing posts by a given user and simplify ownership checks.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to user profile information.
+     * @description Controls access to user profile data.
      * @path /users/{userId}
-     * @allow (create) - A user can create their own profile if the userId matches their auth.uid.
-     * @allow (get, update, delete) - A user can read, update, and delete their own profile.
-     * @deny (create) - A user cannot create a profile with a userId that doesn't match their auth.uid.
-     * @deny (get, update, delete) - A user cannot read, update, or delete another user's profile.
-     * @principle Enforces document ownership for writes.
+     * @allow (create) User 'test_user' with auth.uid == 'test_user' can create their profile.
+     * @allow (get, update, delete) User 'test_user' with auth.uid == 'test_user' can read/update/delete their profile.
+     * @deny (create, get, update, delete) User 'other_user' with auth.uid != 'test_user' cannot access 'test_user' profile.
+     * @principle Enforces document ownership for writes and reads.
      */
     match /users/{userId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
       function isSignedIn() {
         return request.auth != null;
       }
 
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
       allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false; // Users collection is not listable.
-
-      allow create: if isSignedIn() && isOwner(userId); // New documents must have matching user ID
-      allow update: if isSignedIn() && isOwner(userId); // Immutable userId
+      allow list: if false; // Listing users is not permitted.
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
       allow delete: if isSignedIn() && isOwner(userId);
     }
 
     /**
      * @description Controls access to lost item posts created by a specific user.
      * @path /users/{userId}/lostItemPosts/{lostItemPostId}
-     * @allow (create) - A user can create a lost item post under their profile.
-     * @allow (get, list, update, delete) - A user can read, list, update, and delete their own lost item posts.
-     * @deny (create) - A user cannot create a lost item post under another user's profile.
-     * @deny (get, list, update, delete) - A user cannot read, list, update, or delete another user's lost item posts.
-     * @principle Enforces document ownership for writes.
+     * @allow (create) User 'test_user' with auth.uid == 'test_user' can create a lost item post.
+     * @allow (get, list, update, delete) User 'test_user' with auth.uid == 'test_user' can read/list/update/delete their own lost item posts.
+     * @deny (create, get, list, update, delete) User 'other_user' with auth.uid != 'test_user' cannot access 'test_user' lost item posts.
+     * @principle Enforces document ownership for writes and reads within a user's data tree.
      */
     match /users/{userId}/lostItemPosts/{lostItemPostId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
       function isOwner(userId) {
         return request.auth.uid == userId;
       }
-
+      function isSignedIn() {
+        return request.auth != null;
+      }
       allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false;
-
+      allow list: if isSignedIn() && isOwner(userId);
       allow create: if isSignedIn() && isOwner(userId);
       allow update: if isSignedIn() && isOwner(userId);
       allow delete: if isSignedIn() && isOwner(userId);
@@ -71,33 +72,33 @@ service cloud.firestore {
     /**
      * @description Controls access to found item posts.
      * @path /foundItemPosts/{foundItemPostId}
-     * @allow (get, list) - Anyone can read/list found item posts.
-     * @allow (create) - Any authenticated user can create a found item post.
-     * @deny (update, delete) - Only the owner can update/delete found item posts.
-     * @principle Public read, owner-only write.
+     * @allow (get, list) Anyone can read/list found item posts.
+     * @allow (create) Any signed-in user can create a found item post.
+     * @allow (update, delete) Only the user who created the post can update or delete it.
+     * @deny (update, delete) If not signed in, cannot update/delete.
+     * @principle Allows public read access with owner-only writes.
      */
     match /foundItemPosts/{foundItemPostId} {
+      function isOwner() {
+        return resource.data.userId == request.auth.uid;
+      }
       function isSignedIn() {
         return request.auth != null;
       }
 
-      function isOwner(resource) {
-        return resource.data.userId == request.auth.uid;
-      }
-
       allow get, list: if true;
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && isOwner(resource);
-      allow delete: if isSignedIn() && isOwner(resource);
+      allow update: if isSignedIn() && isOwner();
+      allow delete: if isSignedIn() && isOwner();
     }
 
     /**
      * @description Controls access to authority submissions.
      * @path /authoritySubmissions/{authoritySubmissionId}
-     * @allow (get, list) - Anyone can read/list authority submissions.
-     * @allow (create) - Any authenticated user can create an authority submission.
-     * @deny (update, delete) - No one can update or delete an authority submission.
-     * @principle Public read, open write.
+     * @allow (get, list) Anyone can read/list authority submissions.
+     * @allow (create) Any signed-in user can create an authority submission.
+     * @deny (update, delete) No update/delete allowed on AuthoritySubmissions.
+     * @principle Allows public read access and signed in create access. No updates or deletes allowed.
      */
     match /authoritySubmissions/{authoritySubmissionId} {
       function isSignedIn() {
@@ -106,25 +107,18 @@ service cloud.firestore {
 
       allow get, list: if true;
       allow create: if isSignedIn();
-      allow update: if false;
-      allow delete: if false;
+      allow update, delete: if false;
     }
 
-    /**
-     * @description Controls access to authority contacts.
-     * @path /authorityContacts/{authorityContactId}
-     * @allow (get, list, create, update, delete) - Any authenticated user can read, list, create, update, and delete authority contacts.
-     * @principle Open access (consider restricting in production).
-     */
+     /**
+      * @description Controls access to contact information for campus authorities.
+      * @path /authorityContacts/{authorityContactId}
+      * @allow (get, list) Anyone can read/list authority contacts.
+      * @deny (create, update, delete) No one can create, update or delete AuthorityContacts. This would likely be managed by admins.
+      */
     match /authorityContacts/{authorityContactId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
       allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow create, update, delete: if false;
     }
   }
 }
