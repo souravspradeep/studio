@@ -95,10 +95,9 @@ export function FoundItemForm() {
 
     setIsSubmitting(true);
     try {
-        const itemsCollection = collection(firestore, 'items');
+        const itemsCollection = collection(firestore, 'foundItems');
         await addDocumentNonBlocking(itemsCollection, {
             ...values,
-            type: 'found',
             status: 'open',
             date: serverTimestamp(),
             ownerId: user.uid,

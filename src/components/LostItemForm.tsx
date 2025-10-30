@@ -94,10 +94,9 @@ export function LostItemForm() {
 
     setIsSubmitting(true);
     try {
-      const itemsCollection = collection(firestore, 'items');
+      const itemsCollection = collection(firestore, 'lostItems');
       await addDocumentNonBlocking(itemsCollection, {
         ...values,
-        type: 'lost',
         status: 'open',
         date: serverTimestamp(),
         ownerId: user.uid,

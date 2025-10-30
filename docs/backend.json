@@ -10,11 +10,6 @@
           "type": "string",
           "description": "Unique identifier for the item."
         },
-        "type": {
-          "type": "string",
-          "description": "Type of the item post.",
-          "enum": ["lost", "found"]
-        },
         "name": {
           "type": "string",
           "description": "Name or title of the item."
@@ -75,7 +70,7 @@
           "description": "Indicates if a found item was submitted to an office."
         }
       },
-      "required": ["id", "type", "name", "description", "category", "location", "date", "status", "ownerId", "userName", "userContact"]
+      "required": ["id", "name", "description", "category", "location", "date", "status", "ownerId", "userName", "userContact"]
     },
     "User": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -119,13 +114,23 @@
         }
       },
       {
-        "path": "/items/{itemId}",
+        "path": "/lostItems/{lostItemId}",
         "definition": {
           "entityName": "Item",
           "schema": {
             "$ref": "#/entities/Item"
           },
-          "description": "Stores all lost and found item posts. Open for reads and creates by any authenticated user."
+          "description": "Stores all lost item posts."
+        }
+      },
+       {
+        "path": "/foundItems/{foundItemId}",
+        "definition": {
+          "entityName": "Item",
+          "schema": {
+            "$ref": "#/entities/Item"
+          },
+          "description": "Stores all found item posts."
         }
       }
     ]

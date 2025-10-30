@@ -18,38 +18,36 @@ export default function ItemsPage() {
   const { user, isUserLoading } = useUser();
 
   const lostItemsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore) return null;
     return query(
-        collection(firestore, 'items'), 
-        where('type', '==', 'lost'), 
+        collection(firestore, 'lostItems'), 
         where('status', '==', 'open'),
         orderBy('date', 'desc')
     );
-  }, [firestore, user]);
+  }, [firestore]);
 
   const foundItemsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore) return null;
     return query(
-        collection(firestore, 'items'), 
-        where('type', '==', 'found'),
+        collection(firestore, 'foundItems'),
         orderBy('date', 'desc')
     );
-  }, [firestore, user]);
+  }, [firestore]);
 
   const returnedItemsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore) return null;
     return query(
-        collection(firestore, 'items'), 
+        collection(firestore, 'lostItems'), 
         where('status', '==', 'returned'),
         orderBy('date', 'desc')
     );
-  }, [firestore, user]);
+  }, [firestore]);
 
   const { data: lostItems, isLoading: isLoadingLost, error: lostError } = useCollection<Item>(lostItemsQuery);
   const { data: foundItems, isLoading: isLoadingFound, error: foundError } = useCollection<Item>(foundItemsQuery);
   const { data: returnedItems, isLoading: isLoadingReturned, error: returnedError } = useCollection<Item>(returnedItemsQuery);
 
-  const renderItems = (items: Item[] | null, isLoadingData: boolean, error: Error | null, emptyMessage: string) => {
+  const renderItems = (items: Item[] | null, itemType: 'lost' | 'found', isLoadingData: boolean, error: Error | null, emptyMessage: string) => {
     const isLoading = isUserLoading || isLoadingData;
     if (isLoading) {
       return (
@@ -75,7 +73,7 @@ export default function ItemsPage() {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {items.map((item) => (
-          <ItemCard key={item.id} item={item} />
+          <ItemCard key={item.id} item={{...item, type: itemType}} />
         ))}
       </div>
     );
@@ -113,13 +111,13 @@ export default function ItemsPage() {
           </div>
         </div>
         <TabsContent value="lost-items">
-          {renderItems(lostItems, isLoadingLost, lostError, 'No active lost items have been reported.')}
+          {renderItems(lostItems, 'lost', isLoadingLost, lostError, 'No active lost items have been reported.')}
         </TabsContent>
         <TabsContent value="found-items">
-          {renderItems(foundItems, isLoadingFound, foundError, 'No found items have been reported yet.')}
+          {renderItems(foundItems, 'found', isLoadingFound, foundError, 'No found items have been reported yet.')}
         </TabsContent>
         <TabsContent value="returned-items">
-          {renderItems(returnedItems, isLoadingReturned, returnedError, 'No items have been marked as returned yet.')}
+          {renderItems(returnedItems, 'lost', isLoadingReturned, returnedError, 'No items have been marked as returned yet.')}
         </TabsContent>
       </Tabs>
     </div>

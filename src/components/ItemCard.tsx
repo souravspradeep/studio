@@ -41,10 +41,10 @@ export function ItemCard({ item }: { item: Item }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handleMarkAsReturned = async () => {
-    if (!firestore) return;
+    if (!firestore || !item.id) return;
     setIsSubmitting(true);
     try {
-      const itemRef = doc(firestore, 'items', item.id);
+      const itemRef = doc(firestore, 'lostItems', item.id);
       await updateDocumentNonBlocking(itemRef, { status: 'returned' });
       toast({
         title: 'Item Marked as Returned',

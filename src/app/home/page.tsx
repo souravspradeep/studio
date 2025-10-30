@@ -17,20 +17,28 @@ export default function Home() {
   const { user, isUserLoading } = useUser();
 
   const lostItemsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore) return null;
     return query(
-        collection(firestore, 'items'), 
-        where('type', '==', 'lost'), 
+        collection(firestore, 'lostItems'), 
         orderBy('date', 'desc')
     );
-  }, [firestore, user]);
+  }, [firestore]);
+
+  const returnedItemsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(
+        collection(firestore, 'lostItems'), 
+        where('status', '==', 'returned')
+    );
+  }, [firestore]);
 
   const { data: allLostItems, isLoading: isLoadingLostItems } = useCollection<Item>(lostItemsQuery);
+  const { data: returnedItems, isLoading: isLoadingReturned } = useCollection<Item>(returnedItemsQuery);
 
-  const isLoading = isUserLoading || isLoadingLostItems;
+  const isLoading = isUserLoading || isLoadingLostItems || isLoadingReturned;
 
   const activeLostItems = allLostItems?.filter(item => item.status === 'open') || [];
-  const itemsReturned = allLostItems?.filter(item => item.status === 'returned').length || 0;
+  const itemsReturned = returnedItems?.length || 0;
   const activePosts = activeLostItems.length;
   
   const recentLostItems = activeLostItems.slice(0, 4);
@@ -97,7 +105,7 @@ export default function Home() {
         ) : recentLostItems.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {recentLostItems.map((item) => (
-              <ItemCard key={item.id} item={item} />
+              <ItemCard key={item.id} item={{...item, type: 'lost'}} />
             ))}
           </div>
         ) : (
