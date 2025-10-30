@@ -1,128 +1,81 @@
 {
   "entities": {
-    "LostItemPost": {
+    "Item": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "LostItemPost",
+      "title": "Item",
       "type": "object",
-      "description": "Represents a post about a lost item.",
+      "description": "Represents either a lost or found item.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the LostItemPost entity."
+          "description": "Unique identifier for the item."
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of the item post.",
+          "enum": ["lost", "found"]
+        },
+        "name": {
+          "type": "string",
+          "description": "Name or title of the item."
         },
         "description": {
           "type": "string",
-          "description": "Detailed description of the lost item."
-        },
-        "imageUrl": {
-          "type": "string",
-          "description": "URL of the image associated with the lost item.",
-          "format": "uri"
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User who posted the lost item. (Relationship: User 1:N LostItemPost)"
-        },
-        "dateLost": {
-          "type": "string",
-          "description": "The date and time when the item was lost.",
-          "format": "date-time"
+          "description": "Detailed description of the item."
         },
         "category": {
           "type": "string",
-          "description": "Category of the lost item (e.g., keys, books, wallet)."
-        }
-      },
-      "required": [
-        "id",
-        "description",
-        "imageUrl",
-        "userId",
-        "dateLost",
-        "category"
-      ]
-    },
-    "FoundItemPost": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "FoundItemPost",
-      "type": "object",
-      "description": "Represents a post about a found item.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the FoundItemPost entity."
+          "description": "Category of the item (e.g., electronics, keys, books)."
         },
-        "description": {
+        "location": {
           "type": "string",
-          "description": "Detailed description of the found item."
+          "description": "Location where the item was lost or found."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date and time when the item was lost or found.",
+          "format": "date-time"
         },
         "imageUrl": {
           "type": "string",
-          "description": "URL of the image associated with the found item.",
+          "description": "URL of an image of the item.",
           "format": "uri"
         },
-        "locationFound": {
+        "imageDataUri": {
           "type": "string",
-          "description": "Location where the item was found."
+          "description": "Data URI of an uploaded image of the item."
         },
-        "dateFound": {
+        "aiHint": {
           "type": "string",
-          "description": "The date and time when the item was found.",
-          "format": "date-time"
+          "description": "AI-generated hint for image search."
         },
-        "userId": {
+        "status": {
           "type": "string",
-          "description": "Reference to the User who posted the found item. (Relationship: User 1:N FoundItemPost)"
+          "description": "Current status of the item.",
+          "enum": ["open", "returned"]
         },
-        "submissionId": {
+        "ownerId": {
           "type": "string",
-          "description": "Reference to the AuthoritySubmission. (Relationship: AuthoritySubmission 1:1 FoundItemPost)"
+          "description": "The UID of the user who created the post."
         },
-        "category": {
+        "userName": {
           "type": "string",
-          "description": "Category of the found item (e.g., keys, books, wallet)."
+          "description": "The display name of the user who created the post."
+        },
+        "userContact": {
+          "type": "string",
+          "description": "The contact email of the user who created the post."
+        },
+        "mobileNumber": {
+          "type": "string",
+          "description": "Optional mobile number for contact."
+        },
+        "submittedToOffice": {
+          "type": "boolean",
+          "description": "Indicates if a found item was submitted to an office."
         }
       },
-      "required": [
-        "id",
-        "description",
-        "imageUrl",
-        "locationFound",
-        "dateFound",
-        "userId",
-        "category"
-      ]
-    },
-    "AuthoritySubmission": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AuthoritySubmission",
-      "type": "object",
-      "description": "Represents the submission of a found item to the campus authority.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the AuthoritySubmission entity."
-        },
-        "submissionDate": {
-          "type": "string",
-          "description": "Date and time when the item was submitted to the authority.",
-          "format": "date-time"
-        },
-        "authorityContactId": {
-          "type": "string",
-          "description": "Reference to the AuthorityContact responsible for the submission. (Relationship: AuthorityContact 1:N AuthoritySubmission)"
-        },
-        "foundItemPostId": {
-          "type": "string",
-          "description": "Reference to the FoundItemPost associated with the submission. (Relationship: FoundItemPost 1:1 AuthoritySubmission)"
-        }
-      },
-      "required": [
-        "id",
-        "submissionDate",
-        "authorityContactId",
-        "foundItemPostId"
-      ]
+      "required": ["id", "type", "name", "description", "category", "location", "date", "status", "ownerId", "userName", "userContact"]
     },
     "User": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -134,9 +87,9 @@
           "type": "string",
           "description": "Unique identifier for the User entity."
         },
-        "name": {
+        "fullName": {
           "type": "string",
-          "description": "Name of the user."
+          "description": "Full name of the user."
         },
         "email": {
           "type": "string",
@@ -144,42 +97,7 @@
           "format": "email"
         }
       },
-      "required": [
-        "id",
-        "name",
-        "email"
-      ]
-    },
-    "AuthorityContact": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AuthorityContact",
-      "type": "object",
-      "description": "Represents a contact person at the campus authority.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the AuthorityContact entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the authority contact person."
-        },
-        "email": {
-          "type": "string",
-          "description": "Email address of the authority contact person.",
-          "format": "email"
-        },
-        "phone": {
-          "type": "string",
-          "description": "Phone number of the authority contact person."
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "email",
-        "phone"
-      ]
+      "required": ["id", "email"]
     }
   },
   "auth": {
@@ -195,86 +113,21 @@
         "definition": {
           "entityName": "User",
           "schema": {
-            "$ref": "#/backend/entities/User"
+            "$ref": "#/entities/User"
           },
-          "description": "Stores user profile information. Path-based ownership ensures only the user can read/write their own data.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            }
-          ]
+          "description": "Stores user profile information, including full name."
         }
       },
       {
-        "path": "/users/{userId}/lostItemPosts/{lostItemPostId}",
+        "path": "/items/{itemId}",
         "definition": {
-          "entityName": "LostItemPost",
+          "entityName": "Item",
           "schema": {
-            "$ref": "#/backend/entities/LostItemPost"
+            "$ref": "#/entities/Item"
           },
-          "description": "Stores lost item posts created by a specific user.  Path-based ownership simplifies security rules. Includes `userId` to enable listing posts by a given user.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user who created the post."
-            },
-            {
-              "name": "lostItemPostId",
-              "description": "The unique identifier for the lost item post."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/foundItemPosts/{foundItemPostId}",
-        "definition": {
-          "entityName": "FoundItemPost",
-          "schema": {
-            "$ref": "#/backend/entities/FoundItemPost"
-          },
-          "description": "Stores found item posts. Anyone can create. Includes `userId` to enable listing posts by a given user.",
-          "params": [
-            {
-              "name": "foundItemPostId",
-              "description": "The unique identifier for the found item post."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/authoritySubmissions/{authoritySubmissionId}",
-        "definition": {
-          "entityName": "AuthoritySubmission",
-          "schema": {
-            "$ref": "#/backend/entities/AuthoritySubmission"
-          },
-          "description": "Stores submissions to the campus authority. Anyone can create.",
-          "params": [
-            {
-              "name": "authoritySubmissionId",
-              "description": "The unique identifier for the authority submission."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/authorityContacts/{authorityContactId}",
-        "definition": {
-          "entityName": "AuthorityContact",
-          "schema": {
-            "$ref": "#/backend/entities/AuthorityContact"
-          },
-          "description": "Stores contact information for campus authorities.  This would likely be managed by admins.",
-          "params": [
-            {
-              "name": "authorityContactId",
-              "description": "The unique identifier for the authority contact."
-            }
-          ]
+          "description": "Stores all lost and found item posts. Open for reads and creates by any authenticated user."
         }
       }
-    ],
-    "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability for the Campus Compass application.  Authorization independence is achieved by structuring data with path-based ownership for user-related data, eliminating the need for `get()` calls in security rules. Segregation is used to separate `lostItemPosts` and `foundItemPosts` into their own collections to simplify security rules. The structure uses path based ownership to simplify and secure `list` operations. Data clarity is achieved through explicit naming conventions and predictable schemas."
+    ]
   }
 }
