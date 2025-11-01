@@ -4,7 +4,7 @@
 import type { Item } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import Image from 'next/image';
-import { Clock, MapPin, CheckSquare, Info, Award, Mail, Phone, User } from 'lucide-react';
+import { Clock, MapPin, CheckSquare, Info, Award, Mail, Phone, User, Sparkles, Loader2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -28,10 +28,34 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
-import { useUser, useFirestore } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useState, useMemo } from 'react';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { doc, collection, query, where, orderBy } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/lib/firebase-actions';
+import { findSimilarItems } from '@/ai/flows/find-similar-items-flow';
+
+function SmallItemCard({ item }: { item: Item }) {
+  const imageUrl = item.imageDataUri || item.imageUrl;
+  return (
+    <Card className="flex items-center gap-4 p-3">
+       {imageUrl && (
+            <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
+              <Image
+                src={imageUrl}
+                alt={item.name}
+                fill
+                className="object-cover"
+                data-ai-hint={item.aiHint}
+              />
+            </div>
+          )}
+      <div className='overflow-hidden'>
+        <h4 className="font-semibold truncate">{item.name}</h4>
+        <p className="text-sm text-muted-foreground truncate">{item.location}</p>
+      </div>
+    </Card>
+  )
+}
 
 export function ItemCard({ item }: { item: Item }) {
   const { toast } = useToast();
@@ -39,6 +63,19 @@ export function ItemCard({ item }: { item: Item }) {
   const firestore = useFirestore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const [isFindingSimilar, setIsFindingSimilar] = useState(false);
+  const [similarItems, setSimilarItems] = useState<Item[]>([]);
+
+  const allFoundItemsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(
+      collection(firestore, 'foundItems'),
+      orderBy('date', 'desc')
+    );
+  }, [firestore]);
+
+  const { data: foundItems } = useCollection<Item>(allFoundItemsQuery);
 
   const handleMarkAsReturned = async () => {
     if (!firestore || !item.id) return;
@@ -61,6 +98,38 @@ export function ItemCard({ item }: { item: Item }) {
       setIsSubmitting(false);
     }
   };
+
+  const handleFindSimilar = async () => {
+    if (!foundItems || foundItems.length === 0) {
+      toast({ title: 'No found items to search.' });
+      return;
+    }
+    setIsFindingSimilar(true);
+    setSimilarItems([]);
+    try {
+      const result = await findSimilarItems({
+        sourceItem: {
+          name: item.name,
+          description: item.description,
+          category: item.category,
+        },
+        searchItems: foundItems.map(i => ({ id: i.id, name: i.name, description: i.description, category: i.category })),
+      });
+      
+      const matchedItems = foundItems.filter(i => result.similarItemIds.includes(i.id));
+      setSimilarItems(matchedItems);
+
+      if (matchedItems.length === 0) {
+        toast({ title: "No similar items found." });
+      }
+
+    } catch (error) {
+      console.error(error);
+      toast({ title: "Error finding similar items.", variant: "destructive" });
+    } finally {
+      setIsFindingSimilar(false);
+    }
+  }
   
   const isOwner = user && user.uid === item.ownerId;
   const imageUrl = item.imageDataUri || item.imageUrl;
@@ -73,7 +142,13 @@ export function ItemCard({ item }: { item: Item }) {
   const showContactEmail = item.userName !== item.userContact;
 
   return (
-    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+    <Dialog open={isDialogOpen} onOpenChange={(open) => {
+      setIsDialogOpen(open);
+      if (!open) {
+        setSimilarItems([]);
+        setIsFindingSimilar(false);
+      }
+    }}>
       <DialogTrigger asChild>
         <Card className="flex flex-col overflow-hidden h-full shadow-md hover:shadow-xl transition-shadow duration-300 rounded-xl cursor-pointer">
           {imageUrl && (
@@ -136,7 +211,7 @@ export function ItemCard({ item }: { item: Item }) {
           </CardContent>
         </Card>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{item.name}</DialogTitle>
           <div className="pt-2">
@@ -216,6 +291,34 @@ export function ItemCard({ item }: { item: Item }) {
                 </div>
              )}
           </div>
+          
+          {item.type === 'lost' && item.status === 'open' && (
+             <div className="pt-4">
+              <Button onClick={handleFindSimilar} disabled={isFindingSimilar} className="w-full">
+                {isFindingSimilar ? <Loader2 className="animate-spin" /> : <Sparkles className="mr-2" />}
+                {isFindingSimilar ? "Searching..." : "Find Similar Found Items"}
+              </Button>
+            </div>
+          )}
+
+          {isFindingSimilar && (
+            <div className="text-center">
+              <Loader2 className="animate-spin inline-block" />
+              <p className="text-muted-foreground">Searching for matches...</p>
+            </div>
+          )}
+          
+          {similarItems.length > 0 && (
+            <div className="space-y-2 pt-4">
+              <h4 className="font-semibold">Potential Matches Found by AI</h4>
+              <div className="space-y-2">
+                {similarItems.map(similarItem => (
+                  <ItemCard key={similarItem.id} item={{...similarItem, type: 'found'}} />
+                ))}
+              </div>
+            </div>
+          )}
+
         </div>
         <DialogFooter>
           {item.type === 'lost' && item.status === 'open' && isOwner && (
