@@ -55,10 +55,12 @@ export default function SignUpPage() {
       const user = userCredential.user;
 
       const userDocRef = doc(firestore, 'users', user.uid);
+      // This creates the user profile document in Firestore.
       setDocumentNonBlocking(userDocRef, {
+        id: user.uid,
         fullName: values.fullName,
         email: user.email,
-      }, {});
+      }, { merge: false }); // Use merge: false to indicate a new document
 
       toast({
         title: 'Account Created!',
