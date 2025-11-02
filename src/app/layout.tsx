@@ -8,6 +8,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { PageTransition } from '@/components/PageTransition';
 import { usePathname } from 'next/navigation';
 import { FirebaseClientProvider } from '@/firebase';
+import { useEffect } from 'react';
+import { initializeBridge } from 'median-js-bridge';
 
 
 export default function RootLayout({
@@ -19,6 +21,12 @@ export default function RootLayout({
   const noHeaderPaths = ['/login', '/signup', '/'];
 
   const showHeader = !noHeaderPaths.includes(pathname);
+
+  useEffect(() => {
+    // Initialize the Median bridge when the app loads.
+    // This allows the app to communicate with the native wrapper.
+    initializeBridge();
+  }, []);
 
   return (
     <html lang="en" suppressHydrationWarning>
