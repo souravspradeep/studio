@@ -109,7 +109,6 @@ export function LostItemForm() {
         description: 'Your lost item report has been created. We hope you find it soon!',
       });
       form.reset();
-      router.push('/home');
     } catch (error: any) {
        toast({
         title: 'Submission Failed',

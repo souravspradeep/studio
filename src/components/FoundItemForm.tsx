@@ -110,7 +110,6 @@ export function FoundItemForm() {
           description: 'Your found item report has been created. Thank you for your help!',
         });
         form.reset();
-        router.push('/items');
     } catch (error: any) {
        toast({
         title: 'Submission Failed',
