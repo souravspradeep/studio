@@ -4,7 +4,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 import { addDoc } from 'firebase/firestore';
 
@@ -102,7 +102,13 @@ export function FoundItemForm() {
         if (values.imageDataUri) {
           const storage = getStorage(firebaseApp);
           const imageRef = ref(storage, `items/${uuidv4()}`);
-          const snapshot = await uploadString(imageRef, values.imageDataUri, 'data_url');
+          
+          // Convert Data URI to Blob
+          const response = await fetch(values.imageDataUri);
+          const blob = await response.blob();
+
+          // Upload Blob instead of string
+          const snapshot = await uploadBytes(imageRef, blob);
           imageUrl = await getDownloadURL(snapshot.ref);
         }
 
@@ -306,5 +312,3 @@ export function FoundItemForm() {
     </Card>
   );
 }
-
-    

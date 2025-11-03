@@ -7,7 +7,7 @@ import { z } from 'zod';
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 import { addDoc } from 'firebase/firestore';
 
@@ -101,7 +101,13 @@ export function LostItemForm() {
       if (values.imageDataUri) {
         const storage = getStorage(firebaseApp);
         const imageRef = ref(storage, `items/${uuidv4()}`);
-        const snapshot = await uploadString(imageRef, values.imageDataUri, 'data_url');
+        
+        // Convert Data URI to Blob
+        const response = await fetch(values.imageDataUri);
+        const blob = await response.blob();
+
+        // Upload Blob instead of string
+        const snapshot = await uploadBytes(imageRef, blob);
         imageUrl = await getDownloadURL(snapshot.ref);
       }
 
@@ -283,5 +289,3 @@ export function LostItemForm() {
     </Card>
   );
 }
-
-    
