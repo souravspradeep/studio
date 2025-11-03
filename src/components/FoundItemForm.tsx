@@ -99,18 +99,14 @@ export function FoundItemForm() {
     setIsSubmitting(true);
     try {
         let imageUrl = '';
-        // If an image is present, upload it to Cloud Storage
         if (values.imageDataUri) {
           const storage = getStorage(firebaseApp);
           const imageRef = ref(storage, `items/${uuidv4()}`);
-          
-          // The 'data_url' string format is expected by uploadString
           const snapshot = await uploadString(imageRef, values.imageDataUri, 'data_url');
           imageUrl = await getDownloadURL(snapshot.ref);
         }
 
         const itemsCollection = collection(firestore, 'foundItems');
-        // Do not save imageDataUri to Firestore
         const { imageDataUri, ...dataToSave } = values;
 
         addDocumentNonBlocking(itemsCollection, {
