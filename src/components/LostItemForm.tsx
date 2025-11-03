@@ -112,7 +112,7 @@ export function LostItemForm() {
       // Do not save imageDataUri to Firestore
       const { imageDataUri, ...dataToSave } = values;
 
-      await addDocumentNonBlocking(itemsCollection, {
+      addDocumentNonBlocking(itemsCollection, {
         ...dataToSave,
         imageUrl: imageUrl,
         status: 'open',
