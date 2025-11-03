@@ -7,8 +7,6 @@ import { z } from 'zod';
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { v4 as uuidv4 } from 'uuid';
 import { addDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
@@ -97,26 +95,11 @@ export function LostItemForm() {
 
     setIsSubmitting(true);
     try {
-      let imageUrl = '';
-      if (values.imageDataUri) {
-        const storage = getStorage(firebaseApp);
-        const imageRef = ref(storage, `items/${uuidv4()}`);
-        
-        // Convert Data URI to Blob
-        const response = await fetch(values.imageDataUri);
-        const blob = await response.blob();
-
-        // Upload Blob instead of string
-        const snapshot = await uploadBytes(imageRef, blob);
-        imageUrl = await getDownloadURL(snapshot.ref);
-      }
-
       const itemsCollection = collection(firestore, 'lostItems');
-      const { imageDataUri, ...dataToSave } = values;
 
       await addDoc(itemsCollection, {
-        ...dataToSave,
-        imageUrl: imageUrl,
+        ...values,
+        imageUrl: '', // Keep this empty as we are using imageDataUri
         status: 'open',
         date: new Date().toISOString(),
         ownerId: user.uid,
