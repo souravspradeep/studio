@@ -105,8 +105,11 @@ export function FoundItemForm() {
             userContact: user.email,
         });
 
-        // The form.reset() and toast() calls are removed to prevent crashes in WebViews.
-        // The user can manually navigate away after submission.
+        toast({
+            title: 'Report Filed!',
+            description: 'Your found item report has been created. You can now close this form.',
+        });
+        form.reset();
         
     } catch (error: any) {
        toast({
