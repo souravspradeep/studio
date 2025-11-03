@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
+import { addDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -27,8 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Upload, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { useUser, useFirestore, useFirebaseApp } from '@/firebase';
-import { addDocumentNonBlocking } from '@/lib/firebase-actions';
-import { collection, serverTimestamp } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Item name must be at least 2 characters.' }),
@@ -108,11 +108,11 @@ export function LostItemForm() {
       const itemsCollection = collection(firestore, 'lostItems');
       const { imageDataUri, ...dataToSave } = values;
 
-      addDocumentNonBlocking(itemsCollection, {
+      await addDoc(itemsCollection, {
         ...dataToSave,
         imageUrl: imageUrl,
         status: 'open',
-        date: serverTimestamp(),
+        date: new Date().toISOString(),
         ownerId: user.uid,
         userName: user.displayName || user.email,
         userContact: user.email,
@@ -283,3 +283,5 @@ export function LostItemForm() {
     </Card>
   );
 }
+
+    
