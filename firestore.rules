@@ -1,35 +1,26 @@
 /**
- * @file Firestore Security Rules
- * @description This ruleset enforces a user-ownership model for user profiles and a public-read, owner-write model for lost and found items.
+ * @file Firestore and Storage Security Rules
+ * @description This ruleset enforces user ownership for profiles, public-read/owner-write for items, and authenticated-write for image uploads.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profile data. Only the authenticated user can read or write their own profile.
- * - /lostItems/{lostItemId}: Stores lost item posts. These are publicly readable, but only the owner can create, update, or delete them.
- * - /foundItems/{foundItemId}: Stores found item posts. These are publicly readable, but only the owner can create, update, or delete them.
+ * - /users/{userId}: Stores user profile data.
+ * - /lostItems/{lostItemId}: Stores lost item posts.
+ * - /foundItems/{foundItemId}: Stores found item posts.
+ *
+ * Storage Structure:
+ * - /items/{itemId} - Stores images for lost and found items.
  *
  * Key Security Decisions:
- * - User listing is disallowed.
- * - Data shape validation is relaxed to allow for rapid prototyping. Only authorization-critical fields are validated.
- * - Ownership is determined by the `ownerId` field on item documents and the `userId` path for user profiles.
- * - Public read access is granted to the `lostItems` and `foundItems` collections.
- *
- * Denormalization for Authorization:
- * - The `lostItems` and `foundItems` collections depend on denormalized `ownerId` field on each document. This simplifies the rules and avoids costly `get()` calls.
+ * - Firestore: User data is private; item data is public to read but write-restricted to owners.
+ * - Storage: Any authenticated user can write to the 'items/' path. Reads are public. This is a common pattern for user-uploaded content.
  */
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
      * @description Controls access to user profile documents.
-     * @path /users/{userId}
-     * @allow (create) User with UID 'user123' can create their own profile at /users/user123.
-     * @allow (get) User with UID 'user123' can read their profile at /users/user123.
-     * @allow (update) User with UID 'user123' can update their profile at /users/user123.
-     * @allow (delete) User with UID 'user123' can delete their profile at /users/user123.
-     * @deny (create) User with UID 'user456' cannot create a profile at /users/user123.
-     * @deny (get) User with UID 'user456' cannot read the profile at /users/user123.
-     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
@@ -41,15 +32,6 @@ service cloud.firestore {
 
     /**
      * @description Controls access to lost item posts.
-     * @path /lostItems/{lostItemId}
-     * @allow (get) Any user can read a lost item post.
-     * @allow (list) Any user can list lost item posts.
-     * @allow (create) User with UID 'user123' can create a lost item post with ownerId 'user123'.
-     * @allow (update) User with UID 'user123' can update a lost item post they own (ownerId 'user123').
-     * @allow (delete) User with UID 'user123' can delete a lost item post they own (ownerId 'user123').
-     * @deny (create) User with UID 'user456' cannot create a lost item post with ownerId 'user123'.
-     * @deny (update) User with UID 'user456' cannot update a lost item post owned by 'user123'.
-     * @principle Allows public read access but restricts writes to the owner.
      */
     match /lostItems/{lostItemId} {
       allow get: if true;
@@ -61,15 +43,6 @@ service cloud.firestore {
 
     /**
      * @description Controls access to found item posts.
-     * @path /foundItems/{foundItemId}
-     * @allow (get) Any user can read a found item post.
-     * @allow (list) Any user can list found item posts.
-     * @allow (create) User with UID 'user123' can create a found item post with ownerId 'user123'.
-     * @allow (update) User with UID 'user123' can update a found item post they own (ownerId 'user123').
-     * @allow (delete) User with UID 'user123' can delete a found item post they own (ownerId 'user123').
-     * @deny (create) User with UID 'user456' cannot create a found item post with ownerId 'user123'.
-     * @deny (update) User with UID 'user456' cannot update a found item post owned by 'user123'.
-     * @principle Allows public read access but restricts writes to the owner.
      */
     match /foundItems/{foundItemId} {
       allow get: if true;
@@ -80,7 +53,7 @@ service cloud.firestore {
     }
   }
 
-  // Helper functions
+  // Helper functions for Firestore
   function isSignedIn() {
     return request.auth != null;
   }
@@ -91,5 +64,21 @@ service cloud.firestore {
 
   function isExistingOwner(userId) {
     return isOwner(userId) && resource != null;
+  }
+}
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    /**
+     * @description Controls access to image uploads for items.
+     * @path /items/{itemId}
+     * @allow (read) Anyone can read images.
+     * @allow (write) Any authenticated user can upload an image.
+     * @principle Allow public read for displaying images and restrict writes to logged-in users to prevent anonymous abuse.
+     */
+    match /items/{itemId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
   }
 }

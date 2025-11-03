@@ -7,6 +7,8 @@ import { z } from 'zod';
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
+import { v4 as uuidv4 } from 'uuid';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -24,7 +26,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore, useFirebaseApp } from '@/firebase';
 import { addDocumentNonBlocking } from '@/lib/firebase-actions';
 import { collection, serverTimestamp } from 'firebase/firestore';
 
@@ -41,6 +43,7 @@ export function LostItemForm() {
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const firebaseApp = useFirebaseApp();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -90,13 +93,28 @@ export function LostItemForm() {
       return;
     }
 
-    if(!firestore) return;
+    if(!firestore || !firebaseApp) return;
 
     setIsSubmitting(true);
     try {
+      let imageUrl = '';
+      // If an image is present, upload it to Cloud Storage
+      if (values.imageDataUri) {
+        const storage = getStorage(firebaseApp);
+        const imageRef = ref(storage, `items/${uuidv4()}`);
+        
+        // The 'data_url' string format is expected by uploadString
+        const snapshot = await uploadString(imageRef, values.imageDataUri, 'data_url');
+        imageUrl = await getDownloadURL(snapshot.ref);
+      }
+
       const itemsCollection = collection(firestore, 'lostItems');
+      // Do not save imageDataUri to Firestore
+      const { imageDataUri, ...dataToSave } = values;
+
       await addDocumentNonBlocking(itemsCollection, {
-        ...values,
+        ...dataToSave,
+        imageUrl: imageUrl,
         status: 'open',
         date: serverTimestamp(),
         ownerId: user.uid,
@@ -106,7 +124,7 @@ export function LostItemForm() {
 
       toast({
         title: 'Report Filed!',
-        description: 'Your lost item report has been created. You can now close this form.',
+        description: 'Your lost item report has been created.',
       });
       form.reset();
 

@@ -4,6 +4,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
+import { v4 as uuidv4 } from 'uuid';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -25,7 +27,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Checkbox } from './ui/checkbox';
 import Image from 'next/image';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore, useFirebaseApp } from '@/firebase';
 import { addDocumentNonBlocking } from '@/lib/firebase-actions';
 import { collection, serverTimestamp } from 'firebase/firestore';
 
@@ -44,6 +46,7 @@ export function FoundItemForm() {
   const router = useRouter();
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const firebaseApp = useFirebaseApp();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -91,13 +94,28 @@ export function FoundItemForm() {
       router.push('/login');
       return;
     }
-    if(!firestore) return;
+    if(!firestore || !firebaseApp) return;
 
     setIsSubmitting(true);
     try {
+        let imageUrl = '';
+        // If an image is present, upload it to Cloud Storage
+        if (values.imageDataUri) {
+          const storage = getStorage(firebaseApp);
+          const imageRef = ref(storage, `items/${uuidv4()}`);
+          
+          // The 'data_url' string format is expected by uploadString
+          const snapshot = await uploadString(imageRef, values.imageDataUri, 'data_url');
+          imageUrl = await getDownloadURL(snapshot.ref);
+        }
+
         const itemsCollection = collection(firestore, 'foundItems');
+        // Do not save imageDataUri to Firestore
+        const { imageDataUri, ...dataToSave } = values;
+
         await addDocumentNonBlocking(itemsCollection, {
-            ...values,
+            ...dataToSave,
+            imageUrl: imageUrl,
             status: 'open',
             date: serverTimestamp(),
             ownerId: user.uid,
@@ -107,7 +125,7 @@ export function FoundItemForm() {
 
         toast({
             title: 'Report Filed!',
-            description: 'Your found item report has been created. You can now close this form.',
+            description: 'Your found item report has been created.',
         });
         form.reset();
         
