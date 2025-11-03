@@ -8,7 +8,6 @@ import { PageTransition } from '@/components/PageTransition';
 import { usePathname } from 'next/navigation';
 import { FirebaseClientProvider } from '@/firebase';
 import { useEffect } from 'react';
-import Median from 'median-js-bridge'; // ✅ Default import
 
 export default function RootLayout({
   children,
@@ -18,21 +17,6 @@ export default function RootLayout({
   const pathname = usePathname();
   const noHeaderPaths = ['/login', '/signup', '/'];
   const showHeader = !noHeaderPaths.includes(pathname);
-
-  useEffect(() => {
-    try {
-      // 👇 Safely cast to any to bypass incomplete types
-      const bridge: any = Median;
-      if (bridge && typeof bridge.initialize === 'function') {
-        bridge.initialize();
-        console.log('✅ Median bridge initialized successfully');
-      } else {
-        console.warn('⚠️ Median bridge not available or missing initialize()');
-      }
-    } catch (err) {
-      console.error('❌ Median bridge initialization failed:', err);
-    }
-  }, []);
 
   return (
     <html lang="en" suppressHydrationWarning>
