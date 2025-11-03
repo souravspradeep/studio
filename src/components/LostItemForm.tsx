@@ -104,11 +104,9 @@ export function LostItemForm() {
         userContact: user.email,
       });
 
-      toast({
-        title: 'Report Filed!',
-        description: 'Your lost item report has been created. We hope you find it soon!',
-      });
-      form.reset();
+      // The form.reset() and toast() calls are removed to prevent crashes in WebViews.
+      // The user can manually navigate away after submission.
+
     } catch (error: any) {
        toast({
         title: 'Submission Failed',
