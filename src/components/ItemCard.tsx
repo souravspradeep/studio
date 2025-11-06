@@ -8,6 +8,7 @@ import { Clock, MapPin, CheckSquare, Info, Award, Mail, Phone, User, Sparkles, L
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -45,7 +46,7 @@ function SmallItemCard({ item }: { item: Item }) {
                 src={imageUrl}
                 alt={item.name}
                 fill
-                className="object-cover"
+                className="object-contain"
                 data-ai-hint={item.aiHint}
               />
             </div>
@@ -202,7 +203,7 @@ export function ItemCard({ item }: { item: Item }) {
                 src={imageUrl}
                 alt={item.name}
                 fill
-                className="object-cover"
+                className="object-contain"
                 data-ai-hint={item.aiHint}
               />
               <Badge
@@ -239,6 +240,9 @@ export function ItemCard({ item }: { item: Item }) {
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{item.name}</DialogTitle>
+          <DialogDescription>
+            Details for {item.type} item report.
+          </DialogDescription>
           <div className="pt-2">
             <Badge
               variant={getBadgeVariant()}
@@ -250,7 +254,7 @@ export function ItemCard({ item }: { item: Item }) {
         <div className="space-y-4">
           {imageUrl && (
             <div className="relative w-full h-48 rounded-lg overflow-hidden">
-              <Image src={imageUrl} alt={item.name} fill className="object-cover" />
+              <Image src={imageUrl} alt={item.name} fill className="object-contain" />
             </div>
           )}
           <p>{item.description}</p>
@@ -391,3 +395,5 @@ export function ItemCard({ item }: { item: Item }) {
     </Dialog>
   );
 }
+
+    

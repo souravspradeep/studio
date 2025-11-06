@@ -122,18 +122,30 @@ export function LostItemForm() {
     if(!firestore) return;
 
     setIsSubmitting(true);
+    
+    const itemData: any = {
+      name: values.name,
+      category: values.category,
+      description: values.description,
+      location: values.location,
+      status: 'open',
+      date: new Date().toISOString(),
+      ownerId: user.uid,
+      userName: user.displayName || user.email,
+      userContact: user.email,
+      imageUrl: '', // Keep this empty as we are using imageDataUri
+    };
+
+    if (values.imageDataUri) {
+      itemData.imageDataUri = values.imageDataUri;
+    }
+    if (values.mobileNumber) {
+      itemData.mobileNumber = values.mobileNumber;
+    }
+    
     try {
       const itemsCollection = collection(firestore, 'lostItems');
-
-      await addDoc(itemsCollection, {
-        ...values,
-        imageUrl: '', // Keep this empty as we are using imageDataUri
-        status: 'open',
-        date: new Date().toISOString(),
-        ownerId: user.uid,
-        userName: user.displayName || user.email,
-        userContact: user.email,
-      });
+      await addDoc(itemsCollection, itemData);
 
       toast({
         title: 'Report Filed!',
@@ -178,7 +190,7 @@ export function LostItemForm() {
                                 src={imageDataUri}
                                 alt="Uploaded item"
                                 fill
-                                className="object-cover"
+                                className="object-contain"
                               />
                               <Button
                                 type="button"
@@ -300,3 +312,5 @@ export function LostItemForm() {
     </Card>
   );
 }
+
+    
