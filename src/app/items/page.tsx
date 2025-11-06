@@ -12,11 +12,13 @@ import { collection, query, orderBy } from 'firebase/firestore';
 import type { Item } from '@/lib/types';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 export default function ItemsPage() {
   const firestore = useFirestore();
   const { isUserLoading } = useUser();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
   const allLostItemsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -35,15 +37,26 @@ export default function ItemsPage() {
   }, [firestore]);
 
   const { data: allLostItems, isLoading: isLoadingLost, error: lostError } = useCollection<Item>(allLostItemsQuery);
-  const { data: foundItems, isLoading: isLoadingFound, error: foundError } = useCollection<Item>(allFoundItemsQuery);
+  const { data: allFoundItems, isLoading: isLoadingFound, error: foundError } = useCollection<Item>(allFoundItemsQuery);
 
-  const openLostItems = useMemo(() => {
-    return allLostItems?.filter(item => item.status === 'open');
-  }, [allLostItems]);
+  const filteredItems = useMemo(() => {
+    const applyFilters = (items: Item[] | null | undefined) => {
+      if (!items) return [];
+      return items.filter(item => {
+        const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+        const matchesSearch = searchTerm === '' ||
+          item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.description.toLowerCase().includes(searchTerm.toLowerCase());
+        return matchesCategory && matchesSearch;
+      });
+    };
 
-  const returnedItems = useMemo(() => {
-    return allLostItems?.filter(item => item.status === 'returned');
-  }, [allLostItems]);
+    return {
+      openLost: applyFilters(allLostItems?.filter(item => item.status === 'open')),
+      returned: applyFilters(allLostItems?.filter(item => item.status === 'returned')),
+      found: applyFilters(allFoundItems),
+    };
+  }, [allLostItems, allFoundItems, searchTerm, selectedCategory]);
 
   const renderItems = (items: Item[] | null | undefined, itemType: 'lost' | 'found', isLoadingData: boolean, error: Error | null, emptyMessage: string) => {
     const isLoading = isUserLoading || isLoadingData;
@@ -89,29 +102,36 @@ export default function ItemsPage() {
           <div className="flex items-center gap-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search items..." className="pl-9" />
+              <Input
+                placeholder="Search items..."
+                className="pl-9"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-            <Select>
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
                 <SelectItem value="electronics">Electronics</SelectItem>
                 <SelectItem value="wallets">Wallets</SelectItem>
                 <SelectItem value="keys">Keys</SelectItem>
                 <SelectItem value="books">Books</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
         <TabsContent value="lost-items">
-          {renderItems(openLostItems, 'lost', isLoadingLost, lostError, 'No active lost items have been reported.')}
+          {renderItems(filteredItems.openLost, 'lost', isLoadingLost, lostError, 'No active lost items match your filters.')}
         </TabsContent>
         <TabsContent value="found-items">
-          {renderItems(foundItems, 'found', isLoadingFound, foundError, 'No found items have been reported yet.')}
+          {renderItems(filteredItems.found, 'found', isLoadingFound, foundError, 'No found items match your filters.')}
         </TabsContent>
         <TabsContent value="returned-items">
-          {renderItems(returnedItems, 'lost', isLoadingLost, lostError, 'No items have been marked as returned yet.')}
+          {renderItems(filteredItems.returned, 'lost', isLoadingLost, lostError, 'No returned items match your filters.')}
         </TabsContent>
       </Tabs>
     </div>
