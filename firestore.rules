@@ -11,7 +11,7 @@
  * - /items/{itemId} - Stores images for lost and found items.
  *
  * Key Security Decisions:
- * - Firestore: User data is private; item data is public to read but write-restricted to owners.
+ * - Firestore: User data is private; item data is public to read but write-restricted to owners or admin.
  * - Storage: Any authenticated user can write to the 'items/' path. Reads are public. This is a common pattern for user-uploaded content.
  */
 rules_version = '2';
@@ -48,8 +48,8 @@ service cloud.firestore {
       allow get: if true;
       allow list: if true;
       allow create: if request.resource.data.ownerId == request.auth.uid;
-      allow update: if isExistingOwner(resource.data.ownerId);
-      allow delete: if isExistingOwner(resource.data.ownerId);
+      allow update: if isExistingOwner(resource.data.ownerId) || isAdmin();
+      allow delete: if isExistingOwner(resource.data.ownerId) || isAdmin();
     }
   }
 
@@ -64,6 +64,10 @@ service cloud.firestore {
 
   function isExistingOwner(userId) {
     return isOwner(userId) && resource != null;
+  }
+
+  function isAdmin() {
+    return isSignedIn() && request.auth.token.email == 'pradeep.22bcb7025@vitapstudent.ac.in';
   }
 }
 
