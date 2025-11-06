@@ -102,8 +102,12 @@ function ItemsPageContent() {
   };
   
   const allReturnedItems = useMemo(() => {
-    return [...(filteredItems.returned || []), ...(filteredItems.resolved || [])].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  },[filteredItems.returned, filteredItems.resolved]);
+    return [...(filteredItems.returned || [])].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  },[filteredItems.returned]);
+
+  const allResolvedItems = useMemo(() => {
+    return [...(filteredItems.resolved || [])].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  },[filteredItems.resolved]);
 
 
   return (
@@ -113,7 +117,8 @@ function ItemsPageContent() {
           <TabsList>
             <TabsTrigger value="lost-items">Lost Items</TabsTrigger>
             <TabsTrigger value="found-items">Found Items</TabsTrigger>
-            <TabsTrigger value="returned-items">Returned/Resolved</TabsTrigger>
+            <TabsTrigger value="returned-items">Returned Items</TabsTrigger>
+            <TabsTrigger value="resolved-items">Resolved Items</TabsTrigger>
           </TabsList>
           <div className="flex items-center gap-2">
             <div className="relative">
@@ -147,7 +152,10 @@ function ItemsPageContent() {
           {renderItems(filteredItems.found, 'found', isLoadingFound, foundError, 'No open found items match your filters.')}
         </TabsContent>
         <TabsContent value="returned-items">
-          {renderItems(allReturnedItems, 'found', isLoadingLost || isLoadingFound, lostError || foundError, 'No returned or resolved items match your filters.')}
+          {renderItems(allReturnedItems, 'lost', isLoadingLost, lostError, 'No returned items match your filters.')}
+        </TabsContent>
+         <TabsContent value="resolved-items">
+          {renderItems(allResolvedItems, 'found', isLoadingFound, foundError, 'No resolved items match your filters.')}
         </TabsContent>
       </Tabs>
     </div>

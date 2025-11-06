@@ -72,7 +72,7 @@ export default function Home() {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-5xl mb-16">
-        <Link href="/items">
+        <Link href="/items?tab=lost-items">
           <Card className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer h-full">
             <CardContent className="flex items-center justify-between p-6">
               <div>
