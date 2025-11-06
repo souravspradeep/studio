@@ -64,7 +64,8 @@ function ItemsPageContent() {
     return {
       openLost: applyFilters(allLostItems?.filter(item => item.status === 'open')),
       returned: applyFilters(allLostItems?.filter(item => item.status === 'returned')),
-      found: applyFilters(allFoundItems),
+      found: applyFilters(allFoundItems?.filter(item => item.status === 'open')),
+      resolved: applyFilters(allFoundItems?.filter(item => item.status === 'resolved')),
     };
   }, [allLostItems, allFoundItems, searchTerm, selectedCategory]);
 
@@ -99,6 +100,11 @@ function ItemsPageContent() {
       </div>
     );
   };
+  
+  const allReturnedItems = useMemo(() => {
+    return [...(filteredItems.returned || []), ...(filteredItems.resolved || [])].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  },[filteredItems.returned, filteredItems.resolved]);
+
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -107,7 +113,7 @@ function ItemsPageContent() {
           <TabsList>
             <TabsTrigger value="lost-items">Lost Items</TabsTrigger>
             <TabsTrigger value="found-items">Found Items</TabsTrigger>
-            <TabsTrigger value="returned-items">Returned</TabsTrigger>
+            <TabsTrigger value="returned-items">Returned/Resolved</TabsTrigger>
           </TabsList>
           <div className="flex items-center gap-2">
             <div className="relative">
@@ -138,10 +144,10 @@ function ItemsPageContent() {
           {renderItems(filteredItems.openLost, 'lost', isLoadingLost, lostError, 'No active lost items match your filters.')}
         </TabsContent>
         <TabsContent value="found-items">
-          {renderItems(filteredItems.found, 'found', isLoadingFound, foundError, 'No found items match your filters.')}
+          {renderItems(filteredItems.found, 'found', isLoadingFound, foundError, 'No open found items match your filters.')}
         </TabsContent>
         <TabsContent value="returned-items">
-          {renderItems(filteredItems.returned, 'lost', isLoadingLost, lostError, 'No returned items match your filters.')}
+          {renderItems(allReturnedItems, 'found', isLoadingLost || isLoadingFound, lostError || foundError, 'No returned or resolved items match your filters.')}
         </TabsContent>
       </Tabs>
     </div>

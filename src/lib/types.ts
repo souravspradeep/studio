@@ -10,7 +10,7 @@ export type Item = {
   aiHint?: string;
   category: string;
   date: string;
-  status: 'open' | 'returned';
+  status: 'open' | 'returned' | 'resolved';
   userName: string;
   userContact: string;
   mobileNumber?: string;

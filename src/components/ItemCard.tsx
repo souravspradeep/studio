@@ -30,9 +30,10 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, collection, query, where, orderBy } from 'firebase/firestore';
+import { doc, collection, query, where, orderBy, updateDoc } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/lib/firebase-actions';
 import { findSimilarItems } from '@/ai/flows/find-similar-items-flow';
+import { ADMIN_EMAIL } from '@/lib/config';
 
 function SmallItemCard({ item }: { item: Item }) {
   const imageUrl = item.imageDataUri || item.imageUrl;
@@ -82,10 +83,32 @@ export function ItemCard({ item }: { item: Item }) {
     setIsSubmitting(true);
     try {
       const itemRef = doc(firestore, 'lostItems', item.id);
-      await updateDocumentNonBlocking(itemRef, { status: 'returned' });
+      await updateDoc(itemRef, { status: 'returned' });
       toast({
         title: 'Item Marked as Returned',
         description: 'Thank you for updating the status.',
+      });
+      setIsDialogOpen(false); // Close the main dialog
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'An unexpected error occurred.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  const handleMarkAsResolved = async () => {
+    if (!firestore || !item.id) return;
+    setIsSubmitting(true);
+    try {
+      const itemRef = doc(firestore, 'foundItems', item.id);
+      await updateDoc(itemRef, { status: 'resolved' });
+      toast({
+        title: 'Item Marked as Resolved',
+        description: 'The item status has been updated.',
       });
       setIsDialogOpen(false); // Close the main dialog
     } catch (error) {
@@ -132,14 +155,36 @@ export function ItemCard({ item }: { item: Item }) {
   }
   
   const isOwner = user && user.uid === item.ownerId;
+  const isAdmin = user && user.email === ADMIN_EMAIL;
   const imageUrl = item.imageDataUri || item.imageUrl;
   
-  // Convert Firestore Timestamp to Date if necessary
   const date = item.date instanceof Date 
     ? item.date 
-    : (item.date as any)?.toDate ? (item.date as any).toDate() : new Date();
+    : (item.date as any)?.toDate ? (item.date as any).toDate() : new Date(item.date);
     
   const showContactEmail = item.userName !== item.userContact;
+
+  const getBadgeVariant = () => {
+    switch (item.status) {
+      case 'returned':
+      case 'resolved':
+        return 'default';
+      default:
+        return item.type === 'lost' ? 'destructive' : 'secondary';
+    }
+  };
+
+  const getBadgeText = () => {
+    switch (item.status) {
+        case 'returned':
+            return 'Returned';
+        case 'resolved':
+            return 'Resolved';
+        default:
+            return item.type === 'lost' ? 'Lost' : 'Found';
+    }
+  }
+
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={(open) => {
@@ -162,19 +207,9 @@ export function ItemCard({ item }: { item: Item }) {
               />
               <Badge
                 className="absolute top-2 right-2"
-                variant={
-                  item.status === 'returned'
-                    ? 'default'
-                    : item.type === 'lost'
-                    ? 'destructive'
-                    : 'secondary'
-                }
+                variant={getBadgeVariant()}
               >
-                {item.status === 'returned'
-                  ? 'Returned'
-                  : item.type === 'lost'
-                  ? 'Lost'
-                  : 'Found'}
+                {getBadgeText()}
               </Badge>
             </div>
           )}
@@ -182,19 +217,9 @@ export function ItemCard({ item }: { item: Item }) {
             {!imageUrl && (
               <Badge
                 className="self-end"
-                variant={
-                  item.status === 'returned'
-                    ? 'default'
-                    : item.type === 'lost'
-                    ? 'destructive'
-                    : 'secondary'
-                }
+                variant={getBadgeVariant()}
               >
-                {item.status === 'returned'
-                  ? 'Returned'
-                  : item.type === 'lost'
-                  ? 'Lost'
-                  : 'Found'}
+                {getBadgeText()}
               </Badge>
             )}
             <h3 className="font-bold text-lg mb-1 truncate">{item.name}</h3>
@@ -216,19 +241,9 @@ export function ItemCard({ item }: { item: Item }) {
           <DialogTitle>{item.name}</DialogTitle>
           <div className="pt-2">
             <Badge
-              variant={
-                item.status === 'returned'
-                  ? 'default'
-                  : item.type === 'lost'
-                  ? 'destructive'
-                  : 'secondary'
-              }
+              variant={getBadgeVariant()}
             >
-              {item.status === 'returned'
-                ? 'Returned'
-                : item.type === 'lost'
-                ? 'Lost'
-                : 'Found'}
+              {getBadgeText()}
             </Badge>
           </div>
         </DialogHeader>
@@ -340,6 +355,29 @@ export function ItemCard({ item }: { item: Item }) {
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction onClick={handleMarkAsReturned} disabled={isSubmitting}>
                     {isSubmitting ? 'Updating...' : 'Yes, I have it!'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+          {item.type === 'found' && item.status === 'open' && isAdmin && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="secondary">
+                  <CheckSquare className="mr-2" /> Mark as Resolved
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirm Item Resolution</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to mark this item as resolved? This indicates the item has been returned to its owner or otherwise handled.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleMarkAsResolved} disabled={isSubmitting}>
+                    {isSubmitting ? 'Updating...' : 'Yes, mark as resolved'}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
