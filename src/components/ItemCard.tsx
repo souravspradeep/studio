@@ -15,6 +15,16 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer"
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import {
@@ -35,36 +45,14 @@ import { doc, collection, query, where, orderBy, updateDoc } from 'firebase/fire
 import { updateDocumentNonBlocking } from '@/lib/firebase-actions';
 import { findSimilarItems } from '@/ai/flows/find-similar-items-flow';
 import { ADMIN_EMAIL } from '@/lib/config';
+import { useIsMobile } from '@/hooks/use-mobile';
 
-function SmallItemCard({ item }: { item: Item }) {
-  const imageUrl = item.imageDataUri || item.imageUrl;
-  return (
-    <Card className="flex items-center gap-4 p-3">
-       {imageUrl && (
-            <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
-              <Image
-                src={imageUrl}
-                alt={item.name}
-                fill
-                className="object-contain"
-                data-ai-hint={item.aiHint}
-              />
-            </div>
-          )}
-      <div className='overflow-hidden'>
-        <h4 className="font-semibold truncate">{item.name}</h4>
-        <p className="text-sm text-muted-foreground truncate">{item.location}</p>
-      </div>
-    </Card>
-  )
-}
 
-export function ItemCard({ item }: { item: Item }) {
+function ItemDetailsContent({ item }: { item: Item }) {
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const [isFindingSimilar, setIsFindingSimilar] = useState(false);
   const [similarItems, setSimilarItems] = useState<Item[]>([]);
@@ -89,7 +77,6 @@ export function ItemCard({ item }: { item: Item }) {
         title: 'Item Marked as Returned',
         description: 'Thank you for updating the status.',
       });
-      setIsDialogOpen(false); // Close the main dialog
     } catch (error) {
       toast({
         title: 'Error',
@@ -111,7 +98,6 @@ export function ItemCard({ item }: { item: Item }) {
         title: 'Item Marked as Resolved',
         description: 'The item status has been updated.',
       });
-      setIsDialogOpen(false); // Close the main dialog
     } catch (error) {
       toast({
         title: 'Error',
@@ -186,59 +172,9 @@ export function ItemCard({ item }: { item: Item }) {
     }
   }
 
-
   return (
-    <Dialog open={isDialogOpen} onOpenChange={(open) => {
-      setIsDialogOpen(open);
-      if (!open) {
-        setSimilarItems([]);
-        setIsFindingSimilar(false);
-      }
-    }}>
-      <DialogTrigger asChild>
-        <Card className="flex flex-col overflow-hidden h-full shadow-md hover:shadow-xl transition-shadow duration-300 rounded-xl cursor-pointer">
-          {imageUrl && (
-            <div className="relative w-full h-40">
-              <Image
-                src={imageUrl}
-                alt={item.name}
-                fill
-                className="object-contain"
-                data-ai-hint={item.aiHint}
-              />
-              <Badge
-                className="absolute top-2 right-2"
-                variant={getBadgeVariant()}
-              >
-                {getBadgeText()}
-              </Badge>
-            </div>
-          )}
-          <CardContent className="p-4 flex flex-col flex-grow">
-            {!imageUrl && (
-              <Badge
-                className="self-end"
-                variant={getBadgeVariant()}
-              >
-                {getBadgeText()}
-              </Badge>
-            )}
-            <h3 className="font-bold text-lg mb-1 truncate">{item.name}</h3>
-            <p className="text-sm text-muted-foreground line-clamp-2 flex-grow">
-              {item.description}
-            </p>
-            <div className="flex items-center text-xs text-muted-foreground mt-3">
-              <Clock className="h-3 w-3 mr-1.5 flex-shrink-0" />
-              <span>
-                {item.type === 'lost' ? 'Lost on' : 'Found on'}{' '}
-                {date.toLocaleDateString()}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      </DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+    <>
+      <DialogHeader className="p-6 pb-0 md:p-0 md:pb-0">
           <DialogTitle>{item.name}</DialogTitle>
           <DialogDescription>
             Details for {item.type} item report.
@@ -251,7 +187,7 @@ export function ItemCard({ item }: { item: Item }) {
             </Badge>
           </div>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="space-y-4 p-6 md:p-6 max-h-[70vh] overflow-y-auto">
           {imageUrl && (
             <div className="relative w-full h-48 rounded-lg overflow-hidden">
               <Image src={imageUrl} alt={item.name} fill className="object-contain" />
@@ -339,7 +275,7 @@ export function ItemCard({ item }: { item: Item }) {
           )}
 
         </div>
-        <DialogFooter>
+        <DialogFooter className="p-6 pt-0 md:p-6 md:pt-4">
           {item.type === 'lost' && item.status === 'open' && isOwner && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -391,9 +327,141 @@ export function ItemCard({ item }: { item: Item }) {
             <Button variant="outline">Close</Button>
           </DialogClose>
         </DialogFooter>
+    </>
+  )
+}
+
+export function ItemCard({ item }: { item: Item }) {
+  const [open, setOpen] = useState(false);
+  const isMobile = useIsMobile();
+  
+  const getBadgeVariant = () => {
+    switch (item.status) {
+      case 'returned':
+      case 'resolved':
+        return 'default';
+      default:
+        return item.type === 'lost' ? 'destructive' : 'secondary';
+    }
+  };
+
+  const getBadgeText = () => {
+    switch (item.status) {
+        case 'returned':
+            return 'Returned';
+        case 'resolved':
+            return 'Resolved';
+        default:
+            return item.type === 'lost' ? 'Lost' : 'Found';
+    }
+  }
+
+  const imageUrl = item.imageDataUri || item.imageUrl;
+  const date = item.date instanceof Date 
+    ? item.date 
+    : (item.date as any)?.toDate ? (item.date as any).toDate() : new Date(item.date);
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={setOpen}>
+        <DrawerTrigger asChild>
+          <Card className="flex flex-col overflow-hidden h-full shadow-md hover:shadow-xl transition-shadow duration-300 rounded-xl cursor-pointer">
+            {imageUrl && (
+              <div className="relative w-full h-40">
+                <Image
+                  src={imageUrl}
+                  alt={item.name}
+                  fill
+                  className="object-contain"
+                  data-ai-hint={item.aiHint}
+                />
+                <Badge
+                  className="absolute top-2 right-2"
+                  variant={getBadgeVariant()}
+                >
+                  {getBadgeText()}
+                </Badge>
+              </div>
+            )}
+            <CardContent className="p-4 flex flex-col flex-grow">
+              {!imageUrl && (
+                <Badge
+                  className="self-end"
+                  variant={getBadgeVariant()}
+                >
+                  {getBadgeText()}
+                </Badge>
+              )}
+              <h3 className="font-bold text-lg mb-1 truncate">{item.name}</h3>
+              <p className="text-sm text-muted-foreground line-clamp-2 flex-grow">
+                {item.description}
+              </p>
+              <div className="flex items-center text-xs text-muted-foreground mt-3">
+                <Clock className="h-3 w-3 mr-1.5 flex-shrink-0" />
+                <span>
+                  {item.type === 'lost' ? 'Lost on' : 'Found on'}{' '}
+                  {date.toLocaleDateString()}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </DrawerTrigger>
+        <DrawerContent>
+           {/* The content is rendered here for the drawer */}
+           <ItemDetailsContent item={item} />
+        </DrawerContent>
+      </Drawer>
+    )
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Card className="flex flex-col overflow-hidden h-full shadow-md hover:shadow-xl transition-shadow duration-300 rounded-xl cursor-pointer">
+          {imageUrl && (
+            <div className="relative w-full h-40">
+              <Image
+                src={imageUrl}
+                alt={item.name}
+                fill
+                className="object-contain"
+                data-ai-hint={item.aiHint}
+              />
+              <Badge
+                className="absolute top-2 right-2"
+                variant={getBadgeVariant()}
+              >
+                {getBadgeText()}
+              </Badge>
+            </div>
+          )}
+          <CardContent className="p-4 flex flex-col flex-grow">
+            {!imageUrl && (
+              <Badge
+                className="self-end"
+                variant={getBadgeVariant()}
+              >
+                {getBadgeText()}
+              </Badge>
+            )}
+            <h3 className="font-bold text-lg mb-1 truncate">{item.name}</h3>
+            <p className="text-sm text-muted-foreground line-clamp-2 flex-grow">
+              {item.description}
+            </p>
+            <div className="flex items-center text-xs text-muted-foreground mt-3">
+              <Clock className="h-3 w-3 mr-1.5 flex-shrink-0" />
+              <span>
+                {item.type === 'lost' ? 'Lost on' : 'Found on'}{' '}
+                {date.toLocaleDateString()}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </DialogTrigger>
+      <DialogContent>
+         {/* The content is rendered here for the dialog */}
+        <ItemDetailsContent item={item} />
       </DialogContent>
     </Dialog>
   );
 }
-
-    

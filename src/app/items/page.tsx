@@ -73,7 +73,7 @@ function ItemsPageContent() {
     const isLoading = isUserLoading || isLoadingData;
     if (isLoading) {
       return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
           {[...Array(8)].map((_, i) => <Card key={i} className="h-[250px] animate-pulse bg-muted"></Card>)}
         </div>
       );
@@ -93,7 +93,7 @@ function ItemsPageContent() {
       return <p className="text-center text-muted-foreground py-16">{emptyMessage}</p>;
     }
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
         {items.map((item) => (
           <ItemCard key={item.id} item={{...item, type: itemType}} />
         ))}
@@ -114,24 +114,24 @@ function ItemsPageContent() {
     <div className="container mx-auto py-8 px-4">
       <Tabs defaultValue={initialTab} onValueChange={handleTabChange}>
         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <TabsList>
+          <TabsList className="w-full md:w-auto overflow-x-auto">
             <TabsTrigger value="lost-items">Lost Items</TabsTrigger>
             <TabsTrigger value="found-items">Found Items</TabsTrigger>
-            <TabsTrigger value="returned-items">Returned Items</TabsTrigger>
-            <TabsTrigger value="resolved-items">Resolved Items</TabsTrigger>
+            <TabsTrigger value="returned-items">Returned</TabsTrigger>
+            <TabsTrigger value="resolved-items">Resolved</TabsTrigger>
           </TabsList>
-          <div className="flex items-center gap-2">
-            <div className="relative">
+          <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
+            <div className="relative w-full sm:w-auto">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search items..."
-                className="pl-9"
+                className="pl-9 w-full"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
