@@ -102,10 +102,6 @@ export default function ItemsPage() {
                 <SelectItem value="books">Books</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="ghost">
-              <ListFilter className="h-4 w-4 mr-2" />
-              Filters
-            </Button>
           </div>
         </div>
         <TabsContent value="lost-items">
