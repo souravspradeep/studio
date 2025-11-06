@@ -72,28 +72,32 @@ export default function Home() {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-5xl mb-16">
-        <Card className="shadow-lg">
-          <CardContent className="flex items-center justify-between p-6">
-            <div>
-              <p className="text-muted-foreground">Active Posts</p>
-              <p className="text-4xl font-bold">{isLoading ? '...' : activePosts}</p>
-            </div>
-            <div className="bg-blue-100 p-4 rounded-full">
-              <FileText className="text-primary" size={28}/>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-lg">
-          <CardContent className="flex items-center justify-between p-6">
-            <div>
-              <p className="text-muted-foreground">Items Returned</p>
-              <p className="text-4xl font-bold">{isLoading ? '...' : itemsReturned}</p>
-            </div>
-            <div className="bg-green-100 p-4 rounded-full">
-              <CheckCircle className="text-green-600" size={28}/>
-            </div>
-          </CardContent>
-        </Card>
+        <Link href="/items">
+          <Card className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer h-full">
+            <CardContent className="flex items-center justify-between p-6">
+              <div>
+                <p className="text-muted-foreground">Active Posts</p>
+                <p className="text-4xl font-bold">{isLoading ? '...' : activePosts}</p>
+              </div>
+              <div className="bg-blue-100 p-4 rounded-full">
+                <FileText className="text-primary" size={28}/>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/items?tab=returned-items">
+          <Card className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer h-full">
+            <CardContent className="flex items-center justify-between p-6">
+              <div>
+                <p className="text-muted-foreground">Items Returned</p>
+                <p className="text-4xl font-bold">{isLoading ? '...' : itemsReturned}</p>
+              </div>
+              <div className="bg-green-100 p-4 rounded-full">
+                <CheckCircle className="text-green-600" size={28}/>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
       
       <div className="w-full max-w-5xl">

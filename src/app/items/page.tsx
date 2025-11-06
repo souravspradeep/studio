@@ -12,13 +12,23 @@ import { collection, query, orderBy } from 'firebase/firestore';
 import type { Item } from '@/lib/types';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 
-export default function ItemsPage() {
+function ItemsPageContent() {
   const firestore = useFirestore();
   const { isUserLoading } = useUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const initialTab = searchParams.get('tab') || 'lost-items';
+
+  const handleTabChange = (value: string) => {
+    router.push(`/items?tab=${value}`, { scroll: false });
+  };
+
 
   const allLostItemsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -92,7 +102,7 @@ export default function ItemsPage() {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <Tabs defaultValue="lost-items">
+      <Tabs defaultValue={initialTab} onValueChange={handleTabChange}>
         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
           <TabsList>
             <TabsTrigger value="lost-items">Lost Items</TabsTrigger>
@@ -136,4 +146,13 @@ export default function ItemsPage() {
       </Tabs>
     </div>
   );
+}
+
+
+export default function ItemsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ItemsPageContent />
+    </Suspense>
+  )
 }
