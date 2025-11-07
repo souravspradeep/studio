@@ -18,17 +18,7 @@ export default function ContactAuthorityPage() {
             </div>
             <div>
               <h3 className="font-semibold">Location</h3>
-              <p className="text-muted-foreground">Student Union Building, Room 101</p>
-              <p className="text-muted-foreground">123 University Drive, Main Campus</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-4">
-            <div className="bg-blue-100 p-3 rounded-full">
-              <Phone className="text-primary" />
-            </div>
-            <div>
-              <h3 className="font-semibold">Phone</h3>
-              <p className="text-muted-foreground">(123) 456-7890</p>
+              <p className="text-muted-foreground">Academic Block-1 3rd Floor.</p>
             </div>
           </div>
           <div className="flex items-start gap-4">
@@ -37,7 +27,7 @@ export default function ContactAuthorityPage() {
             </div>
             <div>
               <h3 className="font-semibold">Email</h3>
-              <p className="text-muted-foreground">lostandfound@university.edu</p>
+              <p className="text-muted-foreground">student.services@vitap.ac.in</p>
             </div>
           </div>
            <div>
