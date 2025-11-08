@@ -8,7 +8,6 @@
  */
 
 import {ai} from '@/ai/genkit';
-import type { Item } from '@/lib/types';
 import {z} from 'genkit';
 
 const FindSimilarItemsInputSchema = z.object({
@@ -16,12 +15,14 @@ const FindSimilarItemsInputSchema = z.object({
         name: z.string(),
         description: z.string(),
         category: z.string(),
+        imageDataUri: z.string().optional(),
     }).describe("The item to find similarities for."),
     searchItems: z.array(z.object({
         id: z.string(),
         name: z.string(),
         description: z.string(),
         category: z.string(),
+        imageDataUri: z.string().optional(),
     })).describe("The list of items to search through."),
 });
 
@@ -44,12 +45,16 @@ const prompt = ai.definePrompt({
 You will be given a source item that is lost, and a list of items that have been found.
 Your task is to compare the source "lost" item with every item in the "found" list and identify which of the found items are potential matches.
 
-Consider the item's name, description, and category. A good match will be in the same category and have a very similar name and description.
+Consider the item's name, description, category, and pay close attention to the provided images. A good match will be in the same category and have a very similar name, description, and appearance.
 
 Source Lost Item:
 - Name: {{{sourceItem.name}}}
 - Description: {{{sourceItem.description}}}
 - Category: {{{sourceItem.category}}}
+{{#if sourceItem.imageDataUri}}
+- Image: {{media url=sourceItem.imageDataUri}}
+{{/if}}
+
 
 Found Items to Search Through:
 {{#each searchItems}}
@@ -57,6 +62,9 @@ Found Items to Search Through:
   - Name: {{{this.name}}}
   - Description: {{{this.description}}}
   - Category: {{{this.category}}}
+  {{#if this.imageDataUri}}
+  - Image: {{media url=this.imageDataUri}}
+  {{/if}}
 {{/each}}
 
 Return a JSON object with the key "similarItemIds" containing an array of the IDs of the found items that are strong potential matches. If no items are similar, return an empty array.

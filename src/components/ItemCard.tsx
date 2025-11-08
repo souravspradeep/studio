@@ -122,8 +122,15 @@ function ItemDetailsContent({ item }: { item: Item }) {
           name: item.name,
           description: item.description,
           category: item.category,
+          imageDataUri: item.imageDataUri,
         },
-        searchItems: foundItems.map(i => ({ id: i.id, name: i.name, description: i.description, category: i.category })),
+        searchItems: foundItems.map(i => ({ 
+          id: i.id, 
+          name: i.name, 
+          description: i.description, 
+          category: i.category,
+          imageDataUri: i.imageDataUri,
+        })),
       });
       
       const matchedItems = foundItems.filter(i => result.similarItemIds.includes(i.id));
