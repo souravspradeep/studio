@@ -20,7 +20,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { useAuth, useFirestore } from '@/firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { setDocumentNonBlocking } from '@/lib/firebase-actions';
 import { doc } from 'firebase/firestore';
 
@@ -54,6 +54,9 @@ export default function SignUpPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
 
+      // Send verification email
+      await sendEmailVerification(user);
+
       const userDocRef = doc(firestore, 'users', user.uid);
       // This creates the user profile document in Firestore.
       setDocumentNonBlocking(userDocRef, {
@@ -64,7 +67,7 @@ export default function SignUpPage() {
 
       toast({
         title: 'Account Created!',
-        description: 'You can now log in with your new account.',
+        description: 'A verification email has been sent. Please check your inbox.',
       });
       router.push('/login');
     } catch (error: any) {
